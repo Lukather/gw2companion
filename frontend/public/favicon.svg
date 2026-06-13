@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 112" role="img" aria-label="GW2 Companion">
+  <title>GW2 Companion</title>
+
+  <!-- Outer shield -->
+  <path d="M50,0 L100,18 L100,62 Q100,98 50,112 Q0,98 0,62 L0,18 Z"
+        fill="#1a1a2e" stroke="#c97d2e" stroke-width="1.5" />
+
+  <!-- Inner outline -->
+  <path d="M50,8 L92,24 L92,63 Q92,94 50,106 Q8,94 8,63 L8,24 Z"
+        fill="none" stroke="#c97d2e" stroke-width="0.75" opacity="0.5" />
+
+  <!-- Decorative concentric circles -->
+  <circle cx="50" cy="60" r="24" fill="none" stroke="#c97d2e" stroke-width="0.75" opacity="0.35" />
+  <circle cx="50" cy="60" r="16" fill="none" stroke="#c97d2e" stroke-width="0.75" opacity="0.35" />
+
+  <!-- Compass-rose cross -->
+  <line x1="50" y1="36" x2="50" y2="84" stroke="#e8943a" stroke-width="1.2" />
+  <line x1="26" y1="60" x2="74" y2="60" stroke="#e8943a" stroke-width="1.2" />
+
+  <!-- Thick tick marks at line ends -->
+  <line x1="50" y1="36" x2="50" y2="42" stroke="#e8943a" stroke-width="2" />
+  <line x1="50" y1="78" x2="50" y2="84" stroke="#e8943a" stroke-width="2" />
+  <line x1="26" y1="60" x2="32" y2="60" stroke="#e8943a" stroke-width="2" />
+  <line x1="68" y1="60" x2="74" y2="60" stroke="#e8943a" stroke-width="2" />
+
+  <!-- Arrowhead diamonds -->
+  <polygon points="50,33 53,39 50,45 47,39" fill="#e8943a" />
+  <polygon points="50,75 53,81 50,87 47,81" fill="#e8943a" />
+  <polygon points="23,60 29,63 35,60 29,57" fill="#e8943a" />
+  <polygon points="65,60 71,63 77,60 71,57" fill="#e8943a" />
+
+  <!-- Center dot + inner ring -->
+  <circle cx="50" cy="60" r="8" fill="none" stroke="#e8943a" stroke-width="0.75" />
+  <circle cx="50" cy="60" r="4" fill="#e8943a" />
+</svg>
