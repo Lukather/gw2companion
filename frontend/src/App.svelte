@@ -23,7 +23,7 @@
   import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
   import PanelLeft from '@lucide/svelte/icons/panel-left';
   import { fade } from 'svelte/transition';
-  import logoPng from './lib/logo.png';
+  import logo from './lib/logo.svg';
 
   let currentPage = $state('setup');
   let sidebarOpen = $state(true);
@@ -87,7 +87,7 @@
     <!-- Sidebar header -->
     <div class="flex h-16 items-center border-b px-4">
       <button onclick={() => navigateTo('home')} class="shrink-0" title="Home">
-        <img src={logoPng} alt="GW2 Companion" class="h-11 w-auto" />
+        <img src={logo} alt="GW2 Companion" class="h-11 w-auto" />
       </button>
       <button
         class="ml-auto rounded-md p-1 hover:bg-accent lg:hidden"
