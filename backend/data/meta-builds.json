@@ -1,0 +1,221 @@
+{
+  "lastUpdated": "2025-01-01T00:00:00Z",
+  "builds": [
+    {
+      "id": "guardian-dragonhunter-power",
+      "profession": "Guardian",
+      "name": "Power Dragonhunter",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Dragonhunter", "traits": ["Big Game Hunter", "Zealot's Aggression", "Heavy Light"] },
+        { "name": "Radiance", "traits": ["Right-Hand Strength", "Retribution", "Righteous Instincts"] },
+        { "name": "Virtues", "traits": ["Inspired Virtue", "Absolute Resolve", "Permeating Wrath"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Litany of Wrath" },
+        { "slot": "utility1", "name": "Sword of Justice" },
+        { "slot": "utility2", "name": "Procession of Blades" },
+        { "slot": "utility3", "name": "Stand Your Ground" },
+        { "slot": "elite", "name": "Feel My Wrath" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Greatsword", "Sword/Focus"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "warrior-berserker-power",
+      "profession": "Warrior",
+      "name": "Power Berserker",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Strength", "traits": ["Peak Performance", "Forceful Greatsword", "Berserker's Power"] },
+        { "name": "Tactics", "traits": ["Soldier's Comfort", "Shrug It Off", "Vigorous Shouts"] },
+        { "name": "Berserker", "traits": ["Smash Brawler", "Blood Reaction", "Bloody Roar"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Mending" },
+        { "slot": "utility1", "name": "Outrage" },
+        { "slot": "utility2", "name": "Shattering Blow" },
+        { "slot": "utility3", "name": "Wild Blow" },
+        { "slot": "elite", "name": "Head Butt" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Axe/Axe", "Greatsword"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "ranger-soulbeast-power",
+      "profession": "Ranger",
+      "name": "Power Soulbeast",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Marksmanship", "traits": ["Clarion Bond", "Farsighted", "Lead the Wind"] },
+        { "name": "Skirmishing", "traits": ["Sharpened Edges", "Hidden Barbs", "Vicious Quarry"] },
+        { "name": "Soulbeast", "traits": ["Live Fast", "Essence of Speed", "Oppressive Superiority"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "We Heal As One!" },
+        { "slot": "utility1", "name": "Frost Trap" },
+        { "slot": "utility2", "name": "Signet of the Wild" },
+        { "slot": "utility3", "name": "Moa Stance" },
+        { "slot": "elite", "name": "One Wolf Pack" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Greatsword", "Sword/Axe"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "necromancer-reaper-power",
+      "profession": "Necromancer",
+      "name": "Power Reaper",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Spite", "traits": ["Spiteful Talisman", "Awaken the Pain", "Close to Death"] },
+        { "name": "Soul Reaping", "traits": ["Soul Barbs", "Vital Persistence", "Eternal Life"] },
+        { "name": "Reaper", "traits": ["Chilling Nova", "Soul Eater", "Reaper's Onslaught"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Your Soul Is Mine!" },
+        { "slot": "utility1", "name": "Well of Suffering" },
+        { "slot": "utility2", "name": "Well of Darkness" },
+        { "slot": "utility3", "name": "Well of Corruption" },
+        { "slot": "elite", "name": "Lich Form" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Greatsword", "Axe/Focus"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "elementalist-weaver-power",
+      "profession": "Elementalist",
+      "name": "Power Weaver",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Fire", "traits": ["Burning Precision", "Power Overwhelming", "Persisting Flames"] },
+        { "name": "Air", "traits": ["Ferocious Winds", "Stormsoul", "Bolt to the Heart"] },
+        { "name": "Weaver", "traits": ["Superior Elements", "Weaver's Prowess", "Elements of Rage"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Glyph of Elemental Harmony" },
+        { "slot": "utility1", "name": "Primordial Stance" },
+        { "slot": "utility2", "name": "Glyph of Storms" },
+        { "slot": "utility3", "name": "Signet of Fire" },
+        { "slot": "elite", "name": "Weave Self" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Sword/Dagger"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "mesmer-virtuoso-power",
+      "profession": "Mesmer",
+      "name": "Power Virtuoso",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Domination", "traits": ["Blurred Inscriptions", "Egotism", "Vicious Expression"] },
+        { "name": "Illusions", "traits": ["Persistence of Memory", "Phantasmal Force", "Phantasmal Haste"] },
+        { "name": "Virtuoso", "traits": ["Bladeturn Refrain", "Phantasmal Blades", "Bloodsong"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Signet of the Ether" },
+        { "slot": "utility1", "name": "Phantasmal Swordsman" },
+        { "slot": "utility2", "name": "Phantasmal Warden" },
+        { "slot": "utility3", "name": "Mantra of Pain" },
+        { "slot": "elite", "name": "Thousand Cuts" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Dagger/Sword", "Greatsword"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "engineer-mechanist-power",
+      "profession": "Engineer",
+      "name": "Power Mechanist",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Explosives", "traits": ["Short Fuse", "Aim-Assisted Rocket", "Big Boomer"] },
+        { "name": "Firearms", "traits": ["Chemical Rounds", "High Caliber", "Modified Ammunition"] },
+        { "name": "Mechanist", "traits": ["Mech Arms: Single-Edge Cutters", "Mech Frame: Channeling Conduits", "J-Drive"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Rectifier Signet" },
+        { "slot": "utility1", "name": "Grenade Kit" },
+        { "slot": "utility2", "name": "Throw Mine" },
+        { "slot": "utility3", "name": "Force Signet" },
+        { "slot": "elite", "name": "Overclock Signet" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Rifle"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "thief-daredevil-power",
+      "profession": "Thief",
+      "name": "Power Daredevil",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Deadly Arts", "traits": ["Dagger Training", "Revealed Training", "Improvisation"] },
+        { "name": "Critical Strikes", "traits": ["Twin Fangs", "Practiced Tolerance", "No Quarter"] },
+        { "name": "Daredevil", "traits": ["Havoc Specialist", "Staff Master", "Bounding Dodger"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Channeled Vigor" },
+        { "slot": "utility1", "name": "Assassin's Signet" },
+        { "slot": "utility2", "name": "Fist Flurry" },
+        { "slot": "utility3", "name": "Shadowstep" },
+        { "slot": "elite", "name": "Basilisk Venom" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Staff"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    },
+    {
+      "id": "revenant-herald-power",
+      "profession": "Revenant",
+      "name": "Power Herald",
+      "source": "Snowcrows",
+      "specializations": [
+        { "name": "Devastation", "traits": ["Aggressive Agility", "Notoriety", "Swift Termination"] },
+        { "name": "Invocation", "traits": ["Rising Tide", "Spirit Boon", "Charged Mists"] },
+        { "name": "Herald", "traits": ["Core Value", "Shining Aspects", "Forceful Persistence"] }
+      ],
+      "skills": [
+        { "slot": "heal", "name": "Enchanted Daggers" },
+        { "slot": "utility1", "name": "Impossible Odds" },
+        { "slot": "utility2", "name": "Riposting Shadows" },
+        { "slot": "utility3", "name": "Legendary Assassin Stance" },
+        { "slot": "elite", "name": "Energy Expulsion" }
+      ],
+      "equipment": {
+        "prefix": "Berserker's",
+        "weapons": ["Sword/Sword", "Staff"],
+        "runes": "Superior Rune of the Scholar",
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+      }
+    }
+  ]
+}

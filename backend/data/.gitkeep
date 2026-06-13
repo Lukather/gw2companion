@@ -1,0 +1,1 @@
+# Keep the data/ directory tracked even though config.json is ignored.
