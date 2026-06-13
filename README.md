@@ -24,6 +24,9 @@ A local-first web companion for **Guild Wars 2** players. Inspect your account t
 - **Light & dark theme** — persisted across sessions, with Tailwind-driven design and shadcn-svelte components.
 - **Responsive sidebar** — collapsible on mobile, Lucide icons, page transitions.
 
+<img width="2192" height="1346" alt="image" src="https://github.com/user-attachments/assets/a484dcf8-9493-41b8-8f80-29e6e5cd825a" />
+
+
 ---
 
 ## Tech Stack
