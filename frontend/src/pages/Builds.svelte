@@ -85,6 +85,7 @@
   }
 
   let metaPrefix = $derived(metaComparison?.equipmentSummary?.prefix);
+  let metaSlots = $derived(metaComparison?.metaSlots || {});
   let metaWeapons = $derived(metaComparison?.equipmentSummary?.weapons || []);
   let metaRunes = $derived(metaComparison?.equipmentSummary?.runes);
   let metaSigils = $derived(metaComparison?.equipmentSummary?.sigils || []);
@@ -342,7 +343,12 @@
                         <span class="text-muted-foreground">—</span>
                       {/if}
                     </div>
-                    {#if suggestion}
+                    {#if metaSlots[eq.slot]}
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <img src={metaSlots[eq.slot].icon} alt="" width="24" height="24" class="shrink-0" />
+                        <a class="truncate text-xs font-medium text-brand hover:underline" href={metaSlots[eq.slot].wikiUrl} target="_blank" title={metaSlots[eq.slot].name}>{metaSlots[eq.slot].name}</a>
+                      </div>
+                    {:else if suggestion}
                       <div class="truncate text-xs font-medium text-foreground" title={suggestion.name}>{suggestion.name}</div>
                       {#if suggestion.extra}
                         <div class="truncate text-[11px] text-muted-foreground">{suggestion.extra}</div>

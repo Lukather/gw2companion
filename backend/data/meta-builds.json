@@ -46,7 +46,10 @@
         "prefix": "Berserker's",
         "weapons": ["Axe/Axe", "Greatsword"],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"],
+        "slots": {
+          "Helm": { "id": 48075 }
+        }
       }
     },
     {

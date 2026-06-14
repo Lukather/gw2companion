@@ -59,6 +59,12 @@ router.get('/builds', async (req, res) => {
     }
     const equipIds = [...new Set((char.equipment || []).flatMap(eq => [eq.id, ...(eq.upgrades||[]), ...(eq.infusions||[])]).filter(Boolean))];
 
+    // Collect meta slot IDs so they go in the same /v2/items batch as character equipment (issue #2 POC).
+    // Schema: metaBuild.equipment.slots = { SlotName: { id } | { name } | { statPrefix, slot } }
+    // For #2 only the resolved `{ id }` form is exercised; the other shapes land in issue #3.
+    const metaSlotDefs = metaBuild?.equipment?.slots || {};
+    const metaSlotIds = Object.values(metaSlotDefs).map(s => s?.id).filter(Boolean);
+
     // ---- Resolve meta spec names → IDs → all traits ----
     if (!SPEC_CACHE) {
       try { SPEC_CACHE = await gw2Fetch('/v2/specializations?ids=all'); }
@@ -88,7 +94,7 @@ router.get('/builds', async (req, res) => {
     const specDefs = specIds.length ? await gw2Fetch(`/v2/specializations?ids=${specIds.join(',')}`).catch(() => []) : [];
     const traitDefs = await batchFetch('/v2/traits', allTraitIds);
     const skillDefs = await batchFetch('/v2/skills', charSkillIds);
-    const equipDefs = await batchFetch('/v2/items', equipIds);
+    const equipDefs = await batchFetch('/v2/items', [...new Set([...equipIds, ...metaSlotIds])]);
 
     // Index
     const specDefMap = {}, traitDefMap = {}, skillDefMap = {}, itemDefMap = {};
@@ -178,7 +184,25 @@ router.get('/builds', async (req, res) => {
         };
       });
 
-      comparison = { metaName: metaBuild.name, source: metaBuild.source, specializationMatches: specMatches, skillMatches, equipmentSummary: metaBuild.equipment };
+      // Build metaSlots map for the response (issue #2 POC: only curated slots appear).
+      // prefix is taken from the build's equipment.prefix — the curator chose this ID to match it.
+      // Deriving the prefix from the item def is a v2 problem (HideSuffix items like Zojja's Visor
+      // don't carry their prefix in the name, so extractPrefix() returns null for them).
+      const metaSlots = {};
+      for (const [slotName, slotDef] of Object.entries(metaSlotDefs)) {
+        if (!slotDef?.id) continue;
+        const d = itemDefMap[slotDef.id] || {};
+        const nm = d.name || `Item ${slotDef.id}`;
+        metaSlots[slotName] = {
+          id: slotDef.id,
+          name: nm,
+          icon: d.icon || '',
+          wikiUrl: wikiUrl(nm),
+          prefix: metaBuild.equipment.prefix || null,
+        };
+      }
+
+      comparison = { metaName: metaBuild.name, source: metaBuild.source, specializationMatches: specMatches, skillMatches, equipmentSummary: metaBuild.equipment, metaSlots };
     }
 
     console.log('[Builds] Done: specs=%d skills=%d equip=%d meta=%s', pveSpecs.length, pveSkills.length, equipment.length, comparison?.metaName || 'none');
