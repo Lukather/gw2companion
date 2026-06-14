@@ -4,6 +4,73 @@
 
 ---
 
+## Day 3 — Jun 14, 2026: per-slot equipment IDs design + PRD + 7 issues
+
+### What changed
+
+- **Designed the per-slot equipment item IDs feature** for the Build Viewer. Replaces today's synthetic `"Berserker's Heavy Helm"` right-column string with the actual meta item (name + icon + wiki link) + a three-state match indicator (✓ exact / ~ same prefix / ✗ different prefix).
+- **Spiked the GW2 build template chat code decoder.** The format contains only skills, traits, specializations, and weapon **type** IDs — **no equipment data at all**. Killed the "use chat codes as the data source" idea (which would have simplified curation 10×) and reverted to manual name→ID resolution with a helper script.
+- **Wrote a comprehensive PRD** at `plans/per-slot-equipment-ids-prd.md` (~700 lines, 27 user stories, schema, work order, testing strategy, out-of-scope list).
+- **Published 8 issues** to the GitHub repo: 1 parent PRD + 7 vertical slices. Created two triage labels: `ready-for-agent` (green, AFK) and `ready-for-human` (red-orange, HITL).
+- **All design decisions locked in** (Q1–Q6 + helper + spike finding). See "Decisions table" below.
+
+### Design decisions (locked in)
+
+| #  | Decision                | Choice                                                                                          |
+| -- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| 1  | Granularity             | A — 1 build per profession, 9 builds for v1                                                     |
+| 2  | Slot coverage           | A — 15 core slots (6 armor + 5 trinkets + 4 weapons), skip backpack/aquatic/gathering           |
+| 3  | Schema                  | A — IDs only in JSON, resolved at request time; keep `prefix`/`weapons`/`runes`/`sigils` intact  |
+| 4  | Match semantics         | B — three-state ✓ exact / ~ same prefix / ✗ different prefix                                     |
+| 5  | Data source             | D — Snowcrows for v1, hardstuck.gg for v2 variants; helper resolves names or `{ statPrefix, slot }` to IDs |
+| 6  | Right-column rendering  | A — resolved item when curated, synthetic string fallback when not                              |
+| —  | Helper script           | `scripts/resolve-meta-items.js`, `--dry-run` default, `--write` to mutate                       |
+| —  | Chat code               | Spike proved no equipment data; used only for skill/trait/spec cross-validation in the helper   |
+
+### Commits added today
+
+```
+c4a7b01 chore: add build code decoder spike
+e7f6293 docs: add PRD for per-slot equipment item IDs
+```
+
+### New files
+
+- `plans/per-slot-equipment-ids-prd.md` — the full PRD
+- `scripts/spike-decode-build.mjs` — the build code decoder spike (reference; folded into the helper script in issue #3)
+
+### New GitHub infrastructure
+
+- **Label `ready-for-agent`** (green `#0E8A16`) — for AFK slices
+- **Label `ready-for-human`** (red-orange `#D93F0B`) — for HITL slices
+- **Issue #1**: PRD (parent, ready-for-agent)
+- **Issues #2–#8**: the 7 vertical slices (see "Issues graph" below)
+
+### Issues graph (8 issues, with dependency arrows)
+
+```
+#2  helm POC end-to-end  ──▶  #5  three-state match  ──▶  #7  summary count
+                                                       ▲
+#3  helper: name→ID     ──▶  #6  helper: stat-shorthand ┘
+                                                       │
+                                                       ▼
+                                                      #8  curate 9 builds (HITL)
+
+#4  helper: chat-code cross-validation  ──▶ (optional) #8
+```
+
+**Three independent starting points — three AFK agents can work in parallel:**
+
+- **#2** (helm POC) — proves the UI pipeline end-to-end on one slot, one build
+- **#3** (helper script basic) — the curator's tool, name→ID resolution
+- **#4** (chat-code cross-validation) — independent validation feature
+
+### Mini-quirk introduced today
+
+`@gw2/chatlink@0.1.1` (MIT, 12 KB) is the library we settled on for chat-code decoding. It supports the `BuildTemplate` type out of the box. The spike imports it from a local tarball; the helper script in #3 should add it as a devDependency.
+
+---
+
 ## Day 2 — Jun 14, 2026: repo linking, brand cleanup
 
 ### What changed
@@ -140,7 +207,10 @@ gw2-companion/
 │   └── gw2_companion_logo_no_sub.svg
 ├── plans/
 │   ├── issues-and-quick-wins.md
-│   └── tailwind-redesign.md
+│   ├── tailwind-redesign.md
+│   └── per-slot-equipment-ids-prd.md   # PRD for per-slot item IDs    (Day 3)
+├── scripts/                            #                                     (Day 3)
+│   └── spike-decode-build.mjs          # Chat code decoder reference
 │
 ├── backend/
 │   ├── server.js             # Express app, route mounting, static serving
@@ -206,44 +276,36 @@ gw2-companion/
 - Builds backend caches specialization list in memory (`SPEC_CACHE`).
 - shadcn-svelte components built manually (CLI requires TTY + Tailwind v4).
 - Equipment stat prefix extraction uses a hardcoded list — may miss some prefixes.
-- Meta builds have general equipment recommendations, not per-slot item IDs.
+- Meta builds have general equipment recommendations, not per-slot item IDs. **Being addressed** by issues #2–#8 (parent #1).
 - **API key in `backend/data/config.json` is gitignored** — must be entered manually on first run. Out-of-band key rotation still pending (leaked key is in pushed history, treat as compromised).
 - **Tailwind `safelist`** in `tailwind.config.js` covers 8 rarities × 2 properties for Inventory's dynamic class names. New rarity colors must be added to the safelist regex + `tailwind.config.js` color block together.
 - **`favicon.svg` and `logo.svg` are intentionally duplicate** (Day 2) — keep in sync when the brand changes. See "Mini-quirk introduced today" above.
+- **`@gw2/chatlink` is referenced by the spike but not yet in any `package.json`** (Day 3). The helper script in issue #3 should add it as a devDependency.
 
 ---
 
 ## What to do next
 
-> Three concrete picks, ordered roughly by impact-to-effort. Read the linked context, then dive in.
+> **Tomorrow's first commit should be [issue #2](https://github.com/Lukather/gw2companion/issues/2) (helm POC).** It's the smallest end-to-end slice, the most demoable, and unblocks #5 and #7. Estimated effort: ~2 hours.
 
-### 1. `"All characters" mode` for Inventory — **~½ day**
+### Work order (8 issues, dependency-driven)
 
-Right now Inventory is per-character (select on Home → analyze). The backend already aggregates per-character data; the change is mostly a UI toggle on `Inventory.svelte` and a way to call `/api/analyze` without a `?char=` param (or with a sentinel value).
+| #  | Title                                                          | Type     | Blocked by           |
+| -- | -------------------------------------------------------------- | -------- | -------------------- |
+| [1](https://github.com/Lukather/gw2companion/issues/1) | PRD: per-slot equipment item IDs (parent)                      | —        | —                    |
+| [2](https://github.com/Lukather/gw2companion/issues/2) | Helm POC end-to-end (one slot, one build)                      | AFK      | —                    |
+| [3](https://github.com/Lukather/gw2companion/issues/3) | Helper script: name→ID resolution                              | AFK      | —                    |
+| [4](https://github.com/Lukather/gw2companion/issues/4) | Helper script: chat-code cross-validation                      | AFK      | —                    |
+| [5](https://github.com/Lukather/gw2companion/issues/5) | Three-state match indicator per slot                           | AFK      | #2                   |
+| [6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand                       | AFK      | #3                   |
+| [7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗"                                | AFK      | #5                   |
+| [8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 Power builds                     | **HITL** | #3, #6 (#4 optional) |
 
-**Touch points:** `frontend/src/pages/Inventory.svelte`, possibly `backend/routes/analyze.js` (verify the aggregation handles "all" already), `frontend/src/pages/Home.svelte` (add a top-level "Analyze all" button next to character tiles).
+After #2 lands, three parallel work streams can run: #3 + #4 (infrastructure), and #5 (depends on #2). Then #6 → #7 → #8.
 
-**Why it's good first:** low risk, real UX win, exercises the Svelte 5 store + `$effect` plumbing that other features will need.
+### Other ideas (not yet started)
 
-### 2. Per-slot equipment item IDs in `meta-builds.json` — **~1–2 days**
-
-Currently `meta-builds.json` has general equipment recommendations (prefix/weapons/runes/sigils per profession, not per slot). Next step: real item IDs per slot, GuildJen-style, so the Builds page can suggest "equip Carrion Pants of the Warrior" instead of "Power/precision/ferocity on medium armor legs."
-
-**Touch points:** `backend/data/meta-builds.json` (data curation — biggest chunk), `backend/services/analyzer.js` (item-ID resolution), `frontend/src/pages/Builds.svelte` (left-column rendering may need to show item icons).
-
-**Why it's good second:** biggest user-facing value (the whole point of the Builds page), data work, not UI.
-
-### 3. Unify `selectedChar` model across pages — **~2–3 hours**
-
-Deferred from the Jun 13 cleanup. Currently `Builds.svelte` has its own page-local character picker; the `selectedChar` store is only used by Home → Inventory. Extend the store to `{ char, targetPage }` so the Home grid can route to either Inventory or Builds from a single click. Removes a UI inconsistency.
-
-**Touch points:** `frontend/src/lib/stores.js`, `frontend/src/pages/Home.svelte`, `frontend/src/pages/Builds.svelte`, `frontend/src/pages/Inventory.svelte`, `frontend/src/App.svelte` (routing).
-
-**Why it's good third:** small scope, sets up the routing for #1, tightens the model so future "open Inventory for X but in Builds context" features are easy.
-
-### More ideas
-
-The full brainstorm (build template chat-code import/export, more meta builds per profession, animated progress bars, collapsible sections on Builds/Achievements, persistent per-user meta-build customization, wiki-extracted trait names on Refresh Meta) lives in `README.md` under "Ideas / Possible Next Steps." Pick from there if none of the above call to you.
+The full brainstorm (build template chat-code import/export, more meta builds per profession, animated progress bars on Achievements, collapsible sections on Builds/Achievements, persistent per-user meta-build customization, "All characters" mode for Inventory, unified `selectedChar` model) lives in `README.md` under "Ideas / Possible Next Steps." Pick from there if the per-slot IDs work is done and you want a different challenge.
 
 ### What NOT to do
 
@@ -251,3 +313,5 @@ The full brainstorm (build template chat-code import/export, more meta builds pe
 - Don't `git push` without `git pull` first — the project is solo but other devices (yours, presumably the screenshot commit) can land commits between sessions.
 - Don't `git rm nul` if you ever see it again — just `rm` it. (See CONTRIBUTING.md "Don't commit" for why.)
 - Don't refactor the side-by-side equipment comparison in `Builds.svelte` without re-reading Day 1's "Builds page improvements" bullet — there's context on why certain layout decisions were made.
+- Don't start a per-slot IDs implementation without first reading `plans/per-slot-equipment-ids-prd.md` — the schema, match semantics, and helper script behavior are all locked in there. Re-deriving them risks drift.
+- Don't close or modify [issue #1](https://github.com/Lukather/gw2companion/issues/1) (the parent PRD). It's a reference for the child issues.
