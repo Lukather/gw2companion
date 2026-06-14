@@ -4,6 +4,45 @@
 
 ---
 
+## Day 4 — Jun 14, 2026: helm POC implementation (issue #2)
+
+### What changed
+
+- **Implemented issue #2 end-to-end** — the smallest vertical slice of the per-slot equipment IDs feature. Live-tested on the Lukather/Warrior character, pushed (commit `0d9ee2d`), issue closed.
+- **Pivoted from Guardian to Warrior for the POC.** The issue as drafted targeted `guardian-dragonhunter-power`, but the dev has no Guardian character to test against. The POC is anchored on `warrior-berserker-power` (same heavy + Berserker's stat profile — `Zojja's Visor`, id 48075, is a valid meta helm for both). Schema and code path are identical; moving the slot to Guardian is a one-line follow-up when a Guardian exists.
+- **Updated issue #2 body to reflect Warrior.** All 7 acceptance criteria changed from `<guardian>` → `<warrior>`, all ticked. Closing comment points at commit `0d9ee2d`. Issue title kept as `(guardian helm POC)` because renaming would change the URL slug — title is a label, body is the source of truth.
+- **Live-tested both seams from the PRD's testing strategy**: API response shape (verifying `metaComparison.metaSlots.Helm` has `id, name, icon, wikiUrl, prefix` all populated) and production build (157.98 kB, +2.5 kB, no Svelte warnings). No new test files added — the project's "no automated tests" state continues.
+
+### Implementation notes (deviations / decisions made during the build, not in the PRD)
+
+- **`metaSlot.prefix` is taken from the build's `equipment.prefix`, not derived from the item def.** The first helm ID picked (`Zojja's Visor`) has the `HideSuffix` flag, so its name doesn't carry the stat prefix — `extractPrefix("Zojja's Visor")` returns `null`. The curator chose the ID specifically to match the build's prefix anyway, so using the build's prefix is correct. Deriving the prefix from item stats (via `infix_upgrade.attributes` combos: Power/Precision/CritDamage → Berserker's, etc.) is a v2 problem — it would unblock items where the build prefix is unset or wrong. Not in scope for any open issue.
+- **Existing `equipmentSummary` is fully preserved** alongside the new `metaSlots` — the response is additive. The frontend picks `metaSlots[slot]` if present, else the synthetic `getMetaSuggestion()` string. The match indicator on the Helm row is still the legacy prefix ✓/✗ (three-state upgrade is #5).
+- **Live test methodology, not committed.** I tested by starting the backend in a backgrounded subshell, hitting `/api/builds?character=Lukather`, and inspecting the response. Then ran a production frontend build to catch Svelte syntax errors. Cleanup was imperfect — see "Mini-quirk introduced today".
+
+### Commits added today
+
+```
+0d9ee2d feat(builds): resolve per-slot meta item end-to-end (helm POC)
+```
+
+### Files modified today (3 files, +37 / −4)
+
+- `backend/data/meta-builds.json` — added `slots: { "Helm": { "id": 48075 } }` to `warrior-berserker-power`
+- `backend/routes/builds.js` — collect meta slot IDs, extend `/v2/items` batch, build `metaSlots` map, add to `metaComparison`
+- `frontend/src/pages/Builds.svelte` — `let metaSlots = $derived(...)`, conditional render of icon+link in the right column
+
+### GitHub infra changes
+
+- **Issue #2 body rewritten** to reflect Warrior build; all 7 acceptance criteria checked; "Resolved" section added pointing at `0d9ee2d`
+- **Issue #2 closed** with a comment explaining the Guardian→Warrior swap and pointing at the commit
+
+### Mini-quirk introduced today
+
+- **`HideSuffix` items: `metaSlot.prefix` comes from the build, not the item def.** A v2 follow-up could derive it from `infix_upgrade.attributes` combos so the API can return a prefix even when the build's `equipment.prefix` is unset or wrong. Not in scope for any open issue.
+- **Long-lived background processes in testing need a saved PID.** My `pkill -f "node server.js"` after the live API test didn't kill the orphaned process on Windows (MSYS `pkill` is unreliable for detached subshell children). The orphan held :3000 for ~4 minutes and caused an EADDRINUSE on the next `npm run dev`. Future test sessions: save the PID on start, kill by PID with `powershell Stop-Process -Id <pid>`, or use a one-shot Node verification script that doesn't bind a port.
+
+---
+
 ## Day 3 — Jun 14, 2026: per-slot equipment IDs design + PRD + 7 issues
 
 ### What changed
@@ -171,6 +210,7 @@ a9d8afd docs: rewrite README to match current project state
 | **Achievement Tracker** (progress bars, filters)         | ✅     |
 | **Story Journal** (per-character, all campaigns)         | ✅     |
 | **Build Viewer** (specs/traits/skills vs meta)           | ✅     |
+| **Per-slot meta items** (resolved helm in right column, 1 of 15 slots curated) | ✅ Day 4 (POC) |
 | Sidebar nav (Home · Inventory · Materials · Builds · Achievements · Story · Setup) | ✅     |
 | SVG favicon (Day 2)                                      | ✅     |
 | Conventional Commits convention (Day 2)                  | ✅     |
@@ -281,19 +321,25 @@ gw2-companion/
 - **Tailwind `safelist`** in `tailwind.config.js` covers 8 rarities × 2 properties for Inventory's dynamic class names. New rarity colors must be added to the safelist regex + `tailwind.config.js` color block together.
 - **`favicon.svg` and `logo.svg` are intentionally duplicate** (Day 2) — keep in sync when the brand changes. See "Mini-quirk introduced today" above.
 - **`@gw2/chatlink` is referenced by the spike but not yet in any `package.json`** (Day 3). The helper script in issue #3 should add it as a devDependency.
+- **Live-test orphans on :3000** (Day 4) — MSYS `pkill -f "node server.js"` doesn't reliably kill detached subshell children. If you see `EADDRINUSE: :::3000` on `npm run dev` after a test session, find the orphan with `netstat -ano | grep 3000` and `powershell Stop-Process -Id <pid>`. See Day 4's "Mini-quirk" for the long form.
+- **`HideSuffix` items don't carry their stat prefix in the name** (Day 4) — `metaSlot.prefix` is taken from the build's `equipment.prefix`, not derived from the item def. See Day 4's "Implementation notes" for why and the v2 follow-up.
 
 ---
 
 ## What to do next
 
-> **Tomorrow's first commit should be [issue #2](https://github.com/Lukather/gw2companion/issues/2) (helm POC).** It's the smallest end-to-end slice, the most demoable, and unblocks #5 and #7. Estimated effort: ~2 hours.
+> **Tomorrow's first commits should be [issue #3](https://github.com/Lukather/gw2companion/issues/3) (helper script: name→ID resolution) and [issue #4](https://github.com/Lukather/gw2companion/issues/4) (helper script: chat-code cross-validation).** Both are independent AFK starting points (no shared dependencies) — two agents can work in parallel. #3 unblocks #6; #4 is standalone but its cross-validation output feeds into #8. After both land, #5 (three-state match) can run (unblocked by the #2 work). Then #6 → #7 → #8.
+
+### One-line follow-up (not in the issue graph, easy to do anytime)
+
+- **Move the helm slot from `warrior-berserker-power` to `guardian-dragonhunter-power`.** Single line change in `meta-builds.json` (move the `slots` block from one build's `equipment` to another's). Do it when a Guardian character is available to test against. The schema and code path are identical — no other code changes needed.
 
 ### Work order (8 issues, dependency-driven)
 
 | #  | Title                                                          | Type     | Blocked by           |
 | -- | -------------------------------------------------------------- | -------- | -------------------- |
 | [1](https://github.com/Lukather/gw2companion/issues/1) | PRD: per-slot equipment item IDs (parent)                      | —        | —                    |
-| [2](https://github.com/Lukather/gw2companion/issues/2) | Helm POC end-to-end (one slot, one build)                      | AFK      | —                    |
+| [2](https://github.com/Lukather/gw2companion/issues/2) | Helm POC end-to-end (one slot, one build)                      | ✅ done (`0d9ee2d`) | —                    |
 | [3](https://github.com/Lukather/gw2companion/issues/3) | Helper script: name→ID resolution                              | AFK      | —                    |
 | [4](https://github.com/Lukather/gw2companion/issues/4) | Helper script: chat-code cross-validation                      | AFK      | —                    |
 | [5](https://github.com/Lukather/gw2companion/issues/5) | Three-state match indicator per slot                           | AFK      | #2                   |
@@ -301,7 +347,7 @@ gw2-companion/
 | [7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗"                                | AFK      | #5                   |
 | [8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 Power builds                     | **HITL** | #3, #6 (#4 optional) |
 
-After #2 lands, three parallel work streams can run: #3 + #4 (infrastructure), and #5 (depends on #2). Then #6 → #7 → #8.
+#2 is done. #3 + #4 are the two parallel AFK starting points now. #5 unblocks from #2's completed work. Then #6 → #7 → #8.
 
 ### Other ideas (not yet started)
 
@@ -315,3 +361,5 @@ The full brainstorm (build template chat-code import/export, more meta builds pe
 - Don't refactor the side-by-side equipment comparison in `Builds.svelte` without re-reading Day 1's "Builds page improvements" bullet — there's context on why certain layout decisions were made.
 - Don't start a per-slot IDs implementation without first reading `plans/per-slot-equipment-ids-prd.md` — the schema, match semantics, and helper script behavior are all locked in there. Re-deriving them risks drift.
 - Don't close or modify [issue #1](https://github.com/Lukather/gw2companion/issues/1) (the parent PRD). It's a reference for the child issues.
+- **Don't refactor the `extractPrefix()` hardcoded list** without also revisiting how `metaSlot.prefix` is computed in `backend/routes/builds.js` (Day 4) — the two are conceptually related, and changes to one may have implications for the other.
+- **Don't forget to kill testing orphans** before running `npm run dev` (Day 4). See "Known quirks" for the recovery command.
