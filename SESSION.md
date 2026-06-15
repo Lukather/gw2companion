@@ -148,15 +148,15 @@ gw2-companion/
 
 ## What to do next
 
-**#5 is done.** Remaining slices:
+**#5 and #7 are done.** Remaining slices:
 
 | # | Title | Type | Blocked by |
 | --- | --- | --- | --- |
 | [#6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand | AFK | #3 |
-| [#7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗" | AFK | #5 ✅ |
+| [#7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗" | ✅ done | #5 ✅ |
 | [#8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 builds | **HITL** | #3, #6 |
 
-#6 and #7 can run in parallel (both AFK, unblocked). Then #8 (HITL, the data work).
+Only #6 (AFK) and #8 (HITL) remain.
 
 ### What NOT to do (cumulative)
 
