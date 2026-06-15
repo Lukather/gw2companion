@@ -4,6 +4,31 @@
 
 ---
 
+## Day 9 — Jun 15, 2026: curate all 9 Power builds (issue #8, HITL)
+
+### What changed
+
+- **Shipped issue #8** — populated `slots` blocks for all 9 Power builds in `meta-builds.json`. 129 resolved item IDs total (6 builds × 15 + 3 builds × 13 for the 1-weapon-set ones). All 9 also have `sourceUrl` (auto-generated from profession + name) and `buildCode` (exceeds the ≥5/9 acceptance criterion). Two commits: `e89af55` (shorthand) and `b938201` (curation).
+- **Auto-fill workflow** — wrote a one-off node script that generated `sourceUrl` for all 9 builds and `{ statPrefix, slot }` entries for all 14 slot keys, then ran `resolve-meta-items.js --all --write` to turn the shorthand into real item IDs. Manual step was just pasting the 9 `buildCode` chat links from the Snowcrows pages.
+- **Smoke-tested** via `/api/builds` for the 3 characters on the dev's account (Warrior, Ranger, Necromancer) — all return 15 meta items with correct profession weight (Heavy/Medium/Light) and weapon-type matching.
+
+### Implementation notes
+
+- **1-weapon-set builds** (Elementalist `Sword/Dagger`, Engineer `Rifle`, Thief `Staff`) get `WeaponB1`/`WeaponB2` set to `null` — intentionally uncurated since they only carry one weapon set.
+- **Source-URL pattern**: `https://snowcrows.com/builds/<profession-lowercase>/<name-kebab-case>`. The dev's draft had `/accessibuilds/` in the path for guardian — normalized to the standard pattern for consistency.
+- **Build-code scraping failed** — Snowcrows is an Angular SPA, build code is rendered client-side. Not in static HTML. Would need a headless browser or their data API. Skipped; the dev pasted them manually.
+- **All 9 builds written by the same `JSON.stringify` reformat** in the resolver's `applyMutations` — the diff is +892/-91 lines, mostly array-expansion noise. Data is correct but the visual diff is larger than the semantic change. Future: surgical text-replace in `applyMutations` to keep diffs clean.
+
+### Files modified
+
+- `backend/data/meta-builds.json` — 9 builds, slots + sourceUrl + buildCode (892/-91)
+
+### Follow-up filed mentally (not in issues yet)
+
+- **Cross-validator skill-palette bug** (issue #4 code) — 90 false-positive warns per `resolve-meta-items.js --all`. Two causes: (1) skill palette indices in build templates aren't skill IDs, so `/v2/skills/<palette>` returns 404 for every skill slot; (2) the spec check assumes the JSON's `specializations` order matches the build template's `specialization1/2/3` slots, but the template always puts the elite at slot 3 while the JSON orders specs by display preference. Fix is ~10 lines: either drop the skill check or use a profession-specific palette→skill map, and match specs by name. Worth filing as a new issue before the noise hides a real curation drift.
+
+---
+
 ## Day 8 — Jun 16, 2026: stat-selectable shorthand (issue #6)
 
 ### What changed
@@ -135,6 +160,7 @@
 | Chat-code cross-validation | ✅ Day 6 |
 | Three-state match indicator (✓/~ / ✗) | ✅ Day 7 |
 | Stat-selectable shorthand `{ statPrefix, slot }` | ✅ Day 8 |
+| Per-slot IDs curated for all 9 Power builds | ✅ Day 9 |
 
 ---
 
@@ -180,6 +206,7 @@ gw2-companion/
 - `?name=` on `/v2/items` is silently ignored. The helper script uses a local index instead.
 - `?type=` and `?rarity=` on `/v2/items` are **also** silently ignored. Index now carries per-item slot/weight for client-side filtering (Day 8).
 - `wikiFetch` returns 403 on some MediaWiki endpoints (missing User-Agent header).
+- Snowcrows is an Angular SPA — build codes aren't in static HTML. Can't scrape without a headless browser.
 - Live-test orphans on :3000 — MSYS `pkill` unreliable on Windows. Kill by PID.
 - `HideSuffix` items: prefix derived from build's `equipment.prefix`, not item def.
 - Trait cross-validation is LOOSE (GW2 template uses row indices, not trait IDs).
@@ -192,15 +219,20 @@ gw2-companion/
 
 ## What to do next
 
-**#5, #6, and #7 are done.** Remaining slices:
+**All 7 vertical slices from the per-slot equipment IDs PRD are done.** Remaining work is polish and v2 follow-ups, none blocking.
 
-| # | Title | Type | Blocked by |
-| --- | --- | --- | --- |
-| [#6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand | ✅ done | #3 ✅ |
-| [#7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗" | ✅ done | #5 ✅ |
-| [#8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 builds | **HITL** | #3, #6 |
+Open issues:
+| # | Title | Why it's still open |
+| --- | --- | --- |
+| [#1](https://github.com/Lukather/gw2companion/issues/1) | Parent PRD | Kept open by design — tracks the overall feature |
 
-Only #8 (HITL) remains.
+Follow-ups to consider filing (no issue yet):
+- **Cross-validator skill-palette bug** (Day 9) — 90 false-positive warns from #4's code. Fix: drop skill check or use profession-specific palette→skill map; match specs by name not position.
+- **Surgical `applyMutations`** (Day 9) — resolver's `JSON.stringify` reformat inflates diffs (+892/-91 for 129 ID changes). Switch to text-replace to keep diffs ~+135/-9.
+- **`/api/builds/refresh-meta` doesn't persist wiki search results** (known quirk) — updates timestamp but not the actual build data.
+- **`/api/story?all=true` is implemented but never called** from the frontend.
+- **Inconsistent character-selection model** (Builds.svelte has its own page-local `selectedChar`; doesn't share with Home/Inventory).
+- v2 PRD follow-ups: condi/heal/open-world variants per build. Schema/pipeline already support adding them.
 
 ### What NOT to do (cumulative)
 
