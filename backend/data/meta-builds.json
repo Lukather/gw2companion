@@ -6,23 +6,114 @@
       "profession": "Guardian",
       "name": "Power Dragonhunter",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/guardian/power-dragonhunter",
+      "buildCode": "[&DQEqOjEvGykmDwAAihIAAIQSAAD+AAAAtRIAAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Dragonhunter", "traits": ["Big Game Hunter", "Zealot's Aggression", "Heavy Light"] },
-        { "name": "Radiance", "traits": ["Right-Hand Strength", "Retribution", "Righteous Instincts"] },
-        { "name": "Virtues", "traits": ["Inspired Virtue", "Absolute Resolve", "Permeating Wrath"] }
+        {
+          "name": "Dragonhunter",
+          "traits": [
+            "Big Game Hunter",
+            "Zealot's Aggression",
+            "Heavy Light"
+          ]
+        },
+        {
+          "name": "Radiance",
+          "traits": [
+            "Right-Hand Strength",
+            "Retribution",
+            "Righteous Instincts"
+          ]
+        },
+        {
+          "name": "Virtues",
+          "traits": [
+            "Inspired Virtue",
+            "Absolute Resolve",
+            "Permeating Wrath"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Litany of Wrath" },
-        { "slot": "utility1", "name": "Sword of Justice" },
-        { "slot": "utility2", "name": "Procession of Blades" },
-        { "slot": "utility3", "name": "Stand Your Ground" },
-        { "slot": "elite", "name": "Feel My Wrath" }
+        {
+          "slot": "heal",
+          "name": "Litany of Wrath"
+        },
+        {
+          "slot": "utility1",
+          "name": "Sword of Justice"
+        },
+        {
+          "slot": "utility2",
+          "name": "Procession of Blades"
+        },
+        {
+          "slot": "utility3",
+          "name": "Stand Your Ground"
+        },
+        {
+          "slot": "elite",
+          "name": "Feel My Wrath"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Greatsword", "Sword/Focus"],
+        "weapons": [
+          "Greatsword",
+          "Sword/Focus"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 1634
+          },
+          "Shoulders": {
+            "id": 2124
+          },
+          "Coat": {
+            "id": 1020
+          },
+          "Gloves": {
+            "id": 1327
+          },
+          "Leggings": {
+            "id": 1855
+          },
+          "Boots": {
+            "id": 90
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13698
+          },
+          "WeaponA2": {
+            "id": 13698
+          },
+          "WeaponB1": {
+            "id": 13670
+          },
+          "WeaponB2": {
+            "id": 13608
+          }
+        }
       }
     },
     {
@@ -30,25 +121,113 @@
       "profession": "Warrior",
       "name": "Power Berserker",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/warrior/power-berserker",
+      "buildCode": "[&DQIEHzMaEhXyEvIS1xLXEqkAqQCvAK8AwhKcAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Strength", "traits": ["Peak Performance", "Forceful Greatsword", "Berserker's Power"] },
-        { "name": "Tactics", "traits": ["Soldier's Comfort", "Shrug It Off", "Vigorous Shouts"] },
-        { "name": "Berserker", "traits": ["Smash Brawler", "Blood Reaction", "Bloody Roar"] }
+        {
+          "name": "Strength",
+          "traits": [
+            "Peak Performance",
+            "Forceful Greatsword",
+            "Berserker's Power"
+          ]
+        },
+        {
+          "name": "Tactics",
+          "traits": [
+            "Soldier's Comfort",
+            "Shrug It Off",
+            "Vigorous Shouts"
+          ]
+        },
+        {
+          "name": "Berserker",
+          "traits": [
+            "Smash Brawler",
+            "Blood Reaction",
+            "Bloody Roar"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Mending" },
-        { "slot": "utility1", "name": "Outrage" },
-        { "slot": "utility2", "name": "Shattering Blow" },
-        { "slot": "utility3", "name": "Wild Blow" },
-        { "slot": "elite", "name": "Head Butt" }
+        {
+          "slot": "heal",
+          "name": "Mending"
+        },
+        {
+          "slot": "utility1",
+          "name": "Outrage"
+        },
+        {
+          "slot": "utility2",
+          "name": "Shattering Blow"
+        },
+        {
+          "slot": "utility3",
+          "name": "Wild Blow"
+        },
+        {
+          "slot": "elite",
+          "name": "Head Butt"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Axe/Axe", "Greatsword"],
+        "weapons": [
+          "Axe/Axe",
+          "Greatsword"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"],
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
         "slots": {
-          "Helm": { "id": 48075 }
+          "Helm": {
+            "id": 48075
+          },
+          "Shoulders": {
+            "id": 2124
+          },
+          "Coat": {
+            "id": 1020
+          },
+          "Gloves": {
+            "id": 1327
+          },
+          "Leggings": {
+            "id": 1855
+          },
+          "Boots": {
+            "id": 90
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13691
+          },
+          "WeaponA2": {
+            "id": 13691
+          },
+          "WeaponB1": {
+            "id": 13698
+          },
+          "WeaponB2": {
+            "id": 13698
+          }
         }
       }
     },
@@ -57,23 +236,114 @@
       "profession": "Ranger",
       "name": "Power Soulbeast",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/ranger/power-soulbeast",
+      "buildCode": "[&DQQeOiA/Nzp5AAAApQEAALUAAACsAQAALhYAACc7AAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Marksmanship", "traits": ["Clarion Bond", "Farsighted", "Lead the Wind"] },
-        { "name": "Skirmishing", "traits": ["Sharpened Edges", "Hidden Barbs", "Vicious Quarry"] },
-        { "name": "Soulbeast", "traits": ["Live Fast", "Essence of Speed", "Oppressive Superiority"] }
+        {
+          "name": "Marksmanship",
+          "traits": [
+            "Clarion Bond",
+            "Farsighted",
+            "Lead the Wind"
+          ]
+        },
+        {
+          "name": "Skirmishing",
+          "traits": [
+            "Sharpened Edges",
+            "Hidden Barbs",
+            "Vicious Quarry"
+          ]
+        },
+        {
+          "name": "Soulbeast",
+          "traits": [
+            "Live Fast",
+            "Essence of Speed",
+            "Oppressive Superiority"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "We Heal As One!" },
-        { "slot": "utility1", "name": "Frost Trap" },
-        { "slot": "utility2", "name": "Signet of the Wild" },
-        { "slot": "utility3", "name": "Moa Stance" },
-        { "slot": "elite", "name": "One Wolf Pack" }
+        {
+          "slot": "heal",
+          "name": "We Heal As One!"
+        },
+        {
+          "slot": "utility1",
+          "name": "Frost Trap"
+        },
+        {
+          "slot": "utility2",
+          "name": "Signet of the Wild"
+        },
+        {
+          "slot": "utility3",
+          "name": "Moa Stance"
+        },
+        {
+          "slot": "elite",
+          "name": "One Wolf Pack"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Greatsword", "Sword/Axe"],
+        "weapons": [
+          "Greatsword",
+          "Sword/Axe"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 72
+          },
+          "Shoulders": {
+            "id": 635
+          },
+          "Coat": {
+            "id": 106
+          },
+          "Gloves": {
+            "id": 692
+          },
+          "Leggings": {
+            "id": 1183
+          },
+          "Boots": {
+            "id": 162
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13698
+          },
+          "WeaponA2": {
+            "id": 13698
+          },
+          "WeaponB1": {
+            "id": 13670
+          },
+          "WeaponB2": {
+            "id": 13691
+          }
+        }
       }
     },
     {
@@ -81,23 +351,114 @@
       "profession": "Necromancer",
       "name": "Power Reaper",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/necromancer/power-reaper",
+      "buildCode": "[&DQg1KTIlIjbBEigPQAGBAIEAQAHxEnUBAxOVAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Spite", "traits": ["Spiteful Talisman", "Awaken the Pain", "Close to Death"] },
-        { "name": "Soul Reaping", "traits": ["Soul Barbs", "Vital Persistence", "Eternal Life"] },
-        { "name": "Reaper", "traits": ["Chilling Nova", "Soul Eater", "Reaper's Onslaught"] }
+        {
+          "name": "Spite",
+          "traits": [
+            "Spiteful Talisman",
+            "Awaken the Pain",
+            "Close to Death"
+          ]
+        },
+        {
+          "name": "Soul Reaping",
+          "traits": [
+            "Soul Barbs",
+            "Vital Persistence",
+            "Eternal Life"
+          ]
+        },
+        {
+          "name": "Reaper",
+          "traits": [
+            "Chilling Nova",
+            "Soul Eater",
+            "Reaper's Onslaught"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Your Soul Is Mine!" },
-        { "slot": "utility1", "name": "Well of Suffering" },
-        { "slot": "utility2", "name": "Well of Darkness" },
-        { "slot": "utility3", "name": "Well of Corruption" },
-        { "slot": "elite", "name": "Lich Form" }
+        {
+          "slot": "heal",
+          "name": "Your Soul Is Mine!"
+        },
+        {
+          "slot": "utility1",
+          "name": "Well of Suffering"
+        },
+        {
+          "slot": "utility2",
+          "name": "Well of Darkness"
+        },
+        {
+          "slot": "utility3",
+          "name": "Well of Corruption"
+        },
+        {
+          "slot": "elite",
+          "name": "Lich Form"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Greatsword", "Axe/Focus"],
+        "weapons": [
+          "Greatsword",
+          "Axe/Focus"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 2384
+          },
+          "Shoulders": {
+            "id": 2690
+          },
+          "Coat": {
+            "id": 76
+          },
+          "Gloves": {
+            "id": 2019
+          },
+          "Leggings": {
+            "id": 2536
+          },
+          "Boots": {
+            "id": 565
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13698
+          },
+          "WeaponA2": {
+            "id": 13698
+          },
+          "WeaponB1": {
+            "id": 13691
+          },
+          "WeaponB2": {
+            "id": 13608
+          }
+        }
       }
     },
     {
@@ -105,23 +466,109 @@
       "profession": "Elementalist",
       "name": "Power Weaver",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/elementalist/power-weaver",
+      "buildCode": "[&DQYfHykeOBl0AAAATgEAAL4BAAA1FwAAEhcAAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Fire", "traits": ["Burning Precision", "Power Overwhelming", "Persisting Flames"] },
-        { "name": "Air", "traits": ["Ferocious Winds", "Stormsoul", "Bolt to the Heart"] },
-        { "name": "Weaver", "traits": ["Superior Elements", "Weaver's Prowess", "Elements of Rage"] }
+        {
+          "name": "Fire",
+          "traits": [
+            "Burning Precision",
+            "Power Overwhelming",
+            "Persisting Flames"
+          ]
+        },
+        {
+          "name": "Air",
+          "traits": [
+            "Ferocious Winds",
+            "Stormsoul",
+            "Bolt to the Heart"
+          ]
+        },
+        {
+          "name": "Weaver",
+          "traits": [
+            "Superior Elements",
+            "Weaver's Prowess",
+            "Elements of Rage"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Glyph of Elemental Harmony" },
-        { "slot": "utility1", "name": "Primordial Stance" },
-        { "slot": "utility2", "name": "Glyph of Storms" },
-        { "slot": "utility3", "name": "Signet of Fire" },
-        { "slot": "elite", "name": "Weave Self" }
+        {
+          "slot": "heal",
+          "name": "Glyph of Elemental Harmony"
+        },
+        {
+          "slot": "utility1",
+          "name": "Primordial Stance"
+        },
+        {
+          "slot": "utility2",
+          "name": "Glyph of Storms"
+        },
+        {
+          "slot": "utility3",
+          "name": "Signet of Fire"
+        },
+        {
+          "slot": "elite",
+          "name": "Weave Self"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Sword/Dagger"],
+        "weapons": [
+          "Sword/Dagger"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 2384
+          },
+          "Shoulders": {
+            "id": 2690
+          },
+          "Coat": {
+            "id": 76
+          },
+          "Gloves": {
+            "id": 2019
+          },
+          "Leggings": {
+            "id": 2536
+          },
+          "Boots": {
+            "id": 565
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13670
+          },
+          "WeaponA2": {
+            "id": 13663
+          },
+          "WeaponB1": null,
+          "WeaponB2": null
+        }
       }
     },
     {
@@ -129,23 +576,114 @@
       "profession": "Mesmer",
       "name": "Power Virtuoso",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/mesmer/power-virtuoso",
+      "buildCode": "[&DQcBHRgaQiojDwAAjwEAAN0aAABlAQAA5RoAAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Domination", "traits": ["Blurred Inscriptions", "Egotism", "Vicious Expression"] },
-        { "name": "Illusions", "traits": ["Persistence of Memory", "Phantasmal Force", "Phantasmal Haste"] },
-        { "name": "Virtuoso", "traits": ["Bladeturn Refrain", "Phantasmal Blades", "Bloodsong"] }
+        {
+          "name": "Domination",
+          "traits": [
+            "Blurred Inscriptions",
+            "Egotism",
+            "Vicious Expression"
+          ]
+        },
+        {
+          "name": "Illusions",
+          "traits": [
+            "Persistence of Memory",
+            "Phantasmal Force",
+            "Phantasmal Haste"
+          ]
+        },
+        {
+          "name": "Virtuoso",
+          "traits": [
+            "Bladeturn Refrain",
+            "Phantasmal Blades",
+            "Bloodsong"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Signet of the Ether" },
-        { "slot": "utility1", "name": "Phantasmal Swordsman" },
-        { "slot": "utility2", "name": "Phantasmal Warden" },
-        { "slot": "utility3", "name": "Mantra of Pain" },
-        { "slot": "elite", "name": "Thousand Cuts" }
+        {
+          "slot": "heal",
+          "name": "Signet of the Ether"
+        },
+        {
+          "slot": "utility1",
+          "name": "Phantasmal Swordsman"
+        },
+        {
+          "slot": "utility2",
+          "name": "Phantasmal Warden"
+        },
+        {
+          "slot": "utility3",
+          "name": "Mantra of Pain"
+        },
+        {
+          "slot": "elite",
+          "name": "Thousand Cuts"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Dagger/Sword", "Greatsword"],
+        "weapons": [
+          "Dagger/Sword",
+          "Greatsword"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 2384
+          },
+          "Shoulders": {
+            "id": 2690
+          },
+          "Coat": {
+            "id": 76
+          },
+          "Gloves": {
+            "id": 2019
+          },
+          "Leggings": {
+            "id": 2536
+          },
+          "Boots": {
+            "id": 565
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13663
+          },
+          "WeaponA2": {
+            "id": 13670
+          },
+          "WeaponB1": {
+            "id": 13698
+          },
+          "WeaponB2": {
+            "id": 13698
+          }
+        }
       }
     },
     {
@@ -153,23 +691,109 @@
       "profession": "Engineer",
       "name": "Power Mechanist",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/engineer/power-mechanist",
+      "buildCode": "[&DQMGNyYfRioNGwAAhgAAABobAAAQGwAACRsAAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Explosives", "traits": ["Short Fuse", "Aim-Assisted Rocket", "Big Boomer"] },
-        { "name": "Firearms", "traits": ["Chemical Rounds", "High Caliber", "Modified Ammunition"] },
-        { "name": "Mechanist", "traits": ["Mech Arms: Single-Edge Cutters", "Mech Frame: Channeling Conduits", "J-Drive"] }
+        {
+          "name": "Explosives",
+          "traits": [
+            "Short Fuse",
+            "Aim-Assisted Rocket",
+            "Big Boomer"
+          ]
+        },
+        {
+          "name": "Firearms",
+          "traits": [
+            "Chemical Rounds",
+            "High Caliber",
+            "Modified Ammunition"
+          ]
+        },
+        {
+          "name": "Mechanist",
+          "traits": [
+            "Mech Arms: Single-Edge Cutters",
+            "Mech Frame: Channeling Conduits",
+            "J-Drive"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Rectifier Signet" },
-        { "slot": "utility1", "name": "Grenade Kit" },
-        { "slot": "utility2", "name": "Throw Mine" },
-        { "slot": "utility3", "name": "Force Signet" },
-        { "slot": "elite", "name": "Overclock Signet" }
+        {
+          "slot": "heal",
+          "name": "Rectifier Signet"
+        },
+        {
+          "slot": "utility1",
+          "name": "Grenade Kit"
+        },
+        {
+          "slot": "utility2",
+          "name": "Throw Mine"
+        },
+        {
+          "slot": "utility3",
+          "name": "Force Signet"
+        },
+        {
+          "slot": "elite",
+          "name": "Overclock Signet"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Rifle"],
+        "weapons": [
+          "Rifle"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 72
+          },
+          "Shoulders": {
+            "id": 635
+          },
+          "Coat": {
+            "id": 106
+          },
+          "Gloves": {
+            "id": 692
+          },
+          "Leggings": {
+            "id": 1183
+          },
+          "Boots": {
+            "id": 162
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13650
+          },
+          "WeaponA2": {
+            "id": 13650
+          },
+          "WeaponB1": null,
+          "WeaponB2": null
+        }
       }
     },
     {
@@ -177,23 +801,109 @@
       "profession": "Thief",
       "name": "Power Daredevil",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/thief/power-daredevil",
+      "buildCode": "[&DQUjGywnBzqFAAAAWwEAALASAAAzAQAAnwEAAAAAAAAAAAAAAAAAAAAAAAA=]",
       "specializations": [
-        { "name": "Deadly Arts", "traits": ["Dagger Training", "Revealed Training", "Improvisation"] },
-        { "name": "Critical Strikes", "traits": ["Twin Fangs", "Practiced Tolerance", "No Quarter"] },
-        { "name": "Daredevil", "traits": ["Havoc Specialist", "Staff Master", "Bounding Dodger"] }
+        {
+          "name": "Deadly Arts",
+          "traits": [
+            "Dagger Training",
+            "Revealed Training",
+            "Improvisation"
+          ]
+        },
+        {
+          "name": "Critical Strikes",
+          "traits": [
+            "Twin Fangs",
+            "Practiced Tolerance",
+            "No Quarter"
+          ]
+        },
+        {
+          "name": "Daredevil",
+          "traits": [
+            "Havoc Specialist",
+            "Staff Master",
+            "Bounding Dodger"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Channeled Vigor" },
-        { "slot": "utility1", "name": "Assassin's Signet" },
-        { "slot": "utility2", "name": "Fist Flurry" },
-        { "slot": "utility3", "name": "Shadowstep" },
-        { "slot": "elite", "name": "Basilisk Venom" }
+        {
+          "slot": "heal",
+          "name": "Channeled Vigor"
+        },
+        {
+          "slot": "utility1",
+          "name": "Assassin's Signet"
+        },
+        {
+          "slot": "utility2",
+          "name": "Fist Flurry"
+        },
+        {
+          "slot": "utility3",
+          "name": "Shadowstep"
+        },
+        {
+          "slot": "elite",
+          "name": "Basilisk Venom"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Staff"],
+        "weapons": [
+          "Staff"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 72
+          },
+          "Shoulders": {
+            "id": 635
+          },
+          "Coat": {
+            "id": 106
+          },
+          "Gloves": {
+            "id": 692
+          },
+          "Leggings": {
+            "id": 1183
+          },
+          "Boots": {
+            "id": 162
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13587
+          },
+          "WeaponA2": {
+            "id": 13587
+          },
+          "WeaponB1": null,
+          "WeaponB2": null
+        }
       }
     },
     {
@@ -201,23 +911,114 @@
       "profession": "Revenant",
       "name": "Power Herald",
       "source": "Snowcrows",
+      "sourceUrl": "https://snowcrows.com/builds/revenant/power-herald",
+      "buildCode": "[&DQkDNg8qNBbcEdwRKxIrEtQR1BEGEgYSyhHKEQECAQIGEisS1BEGEisS1BE=]",
       "specializations": [
-        { "name": "Devastation", "traits": ["Aggressive Agility", "Notoriety", "Swift Termination"] },
-        { "name": "Invocation", "traits": ["Rising Tide", "Spirit Boon", "Charged Mists"] },
-        { "name": "Herald", "traits": ["Core Value", "Shining Aspects", "Forceful Persistence"] }
+        {
+          "name": "Devastation",
+          "traits": [
+            "Aggressive Agility",
+            "Notoriety",
+            "Swift Termination"
+          ]
+        },
+        {
+          "name": "Invocation",
+          "traits": [
+            "Rising Tide",
+            "Spirit Boon",
+            "Charged Mists"
+          ]
+        },
+        {
+          "name": "Herald",
+          "traits": [
+            "Core Value",
+            "Shining Aspects",
+            "Forceful Persistence"
+          ]
+        }
       ],
       "skills": [
-        { "slot": "heal", "name": "Enchanted Daggers" },
-        { "slot": "utility1", "name": "Impossible Odds" },
-        { "slot": "utility2", "name": "Riposting Shadows" },
-        { "slot": "utility3", "name": "Legendary Assassin Stance" },
-        { "slot": "elite", "name": "Energy Expulsion" }
+        {
+          "slot": "heal",
+          "name": "Enchanted Daggers"
+        },
+        {
+          "slot": "utility1",
+          "name": "Impossible Odds"
+        },
+        {
+          "slot": "utility2",
+          "name": "Riposting Shadows"
+        },
+        {
+          "slot": "utility3",
+          "name": "Legendary Assassin Stance"
+        },
+        {
+          "slot": "elite",
+          "name": "Energy Expulsion"
+        }
       ],
       "equipment": {
         "prefix": "Berserker's",
-        "weapons": ["Sword/Sword", "Staff"],
+        "weapons": [
+          "Sword/Sword",
+          "Staff"
+        ],
         "runes": "Superior Rune of the Scholar",
-        "sigils": ["Superior Sigil of Force", "Superior Sigil of Impact"]
+        "sigils": [
+          "Superior Sigil of Force",
+          "Superior Sigil of Impact"
+        ],
+        "slots": {
+          "Helm": {
+            "id": 1634
+          },
+          "Shoulders": {
+            "id": 2124
+          },
+          "Coat": {
+            "id": 1020
+          },
+          "Gloves": {
+            "id": 1327
+          },
+          "Leggings": {
+            "id": 1855
+          },
+          "Boots": {
+            "id": 90
+          },
+          "Amulet": {
+            "id": 21105
+          },
+          "Accessory1": {
+            "id": 70784
+          },
+          "Accessory2": {
+            "id": 70784
+          },
+          "Ring1": {
+            "id": 23199
+          },
+          "Ring2": {
+            "id": 23199
+          },
+          "WeaponA1": {
+            "id": 13670
+          },
+          "WeaponA2": {
+            "id": 13670
+          },
+          "WeaponB1": {
+            "id": 13587
+          },
+          "WeaponB2": {
+            "id": 13587
+          }
+        }
       }
     }
   ]
