@@ -11,6 +11,7 @@
     "postinstall": "cd backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
+    "@gw2/chatlink": "^0.1.1",
     "concurrently": "^8.2.2"
   }
 }

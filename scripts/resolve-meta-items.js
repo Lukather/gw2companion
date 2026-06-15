@@ -40,11 +40,31 @@
  *   { statPrefix: "Berserker's", slot: "Helm" }  → skipped (deferred to #6)
  *   null / missing               → skipped
  *
+ * CHAT-CODE CROSS-VALIDATION (issue #4)
+ *   If a build has a `buildCode` field (an in-game GW2 build template chat
+ *   link, e.g. `[&DQIkLTM+...=]`), the script decodes it with @gw2/chatlink
+ *   and cross-validates against the human-maintained `specializations` and
+ *   `skills` blocks. Mismatches are logged as advisory warnings, never as
+ *   errors. No-op when no buildCode is present.
+ *
+ *   - Spec names: tight check (decoded spec name vs JSON spec name, warn on mismatch).
+ *   - Trait names: LOOSE check (decoded spec exposes 3 minor + 9 major trait names;
+ *     each JSON trait is verified to exist somewhere in that set). The GW2 build
+ *     template encodes trait choices as row indices (Top/Middle/Bottom), not as
+ *     specific trait indices, so a tight per-choice check would need the actual
+ *     trait-ID mapping. The loose check catches the real failure mode — a trait
+ *     rename in a patch — without needing that mapping. See the "Why a loose
+ *     check?" note in the implementation.
+ *   - Skill names: tight check (decoded skill name vs JSON skill name, warn on
+ *     mismatch). Skill IDs can become stale between game patches; the script
+ *     fetches the current name and reports any drift.
+ *
  * REUSE OF EXISTING INFRA
  *   - API client: backend/services/gw2-api.js (gw2Fetch — in-memory cache
  *     + rate-limit handling).
  *   - ID chunking: backend/services/utils.js (chunkIds — 200/call, max
  *     accepted by the GW2 API).
+ *   - Build template decoder: @gw2/chatlink (MIT, 25.5 KB unpacked).
  */
 
 const fs = require('fs');
@@ -59,6 +79,7 @@ const INDEX_PATH = path.join(SCRIPT_DIR, '.item-name-index.json');
 
 const { gw2Fetch } = require(path.join(BACKEND_DIR, 'services', 'gw2-api.js'));
 const { chunkIds } = require(path.join(BACKEND_DIR, 'services', 'utils.js'));
+const { decodeChatlink, ChatlinkType } = require('@gw2/chatlink');
 
 // --- arg parsing --------------------------------------------------------
 
@@ -96,7 +117,13 @@ the would-be mutations.
 
 Item-name index lives at scripts/.item-name-index.json (gitignored).
 It is built on first run (~3-5 min, ~370 chunked API calls) and reused
-afterwards. Use --refresh to force a rebuild.`);
+afterwards. Use --refresh to force a rebuild.
+
+Chat-code cross-validation:
+  Builds with a 'buildCode' field are decoded with @gw2/chatlink and
+  cross-validated against the human-maintained 'specializations' and
+  'skills' blocks. Mismatches are reported as advisory WARN lines.
+  No-op when no buildCode is present. Warnings never fail the run.`);
 }
 
 // --- slot classification ------------------------------------------------
@@ -231,11 +258,121 @@ function selectBuilds(data, args) {
   return data.builds || [];
 }
 
+// --- chat-code cross-validation (issue #4) -----------------------------
+
+async function fetchTraitNamesById(traitIds) {
+  // Batch-fetch all traits by ID. Returns a Map<id, name>.
+  const nameById = new Map();
+  for (const chunk of chunkIds([...new Set(traitIds)])) {
+    try {
+      const arr = await gw2Fetch(`/v2/traits?ids=${chunk.join(',')}`);
+      for (const t of arr || []) nameById.set(t.id, t.name);
+    } catch (e) {
+      // 404 (no such id) for an individual chunk shouldn't fail the whole call;
+      // we'll fall through and the per-trait check will report 'unknown'
+    }
+  }
+  return nameById;
+}
+
+async function fetchSkillNameById(skillIds) {
+  const nameById = new Map();
+  for (const chunk of chunkIds([...new Set(skillIds)])) {
+    try {
+      const arr = await gw2Fetch(`/v2/skills?ids=${chunk.join(',')}`);
+      for (const s of arr || []) nameById.set(s.id, s.name);
+    } catch (e) { /* same as above */ }
+  }
+  return nameById;
+}
+
+async function crossValidateBuild(build) {
+  if (!build.buildCode) return { present: false, warnings: [], count: 0 };
+
+  let decoded;
+  try {
+    decoded = decodeChatlink(build.buildCode);
+  } catch (e) {
+    return { present: true, warnings: [`buildCode: failed to decode — ${e.message}`], count: 1, decodeError: true };
+  }
+  if (decoded.type !== ChatlinkType.BuildTemplate) {
+    return { present: true, warnings: [`buildCode: expected BuildTemplate (13), got type ${decoded.type}`], count: 1, decodeError: true };
+  }
+  const d = decoded.data;
+  const warnings = [];
+
+  // Spec names + trait existence (loose)
+  for (let i = 1; i <= 3; i++) {
+    const specId = d[`specialization${i}`];
+    const humanSpec = build.specializations && build.specializations[i - 1];
+    if (!specId) continue;
+    if (!humanSpec) {
+      warnings.push(`spec${i}: decoded spec id=${specId} but no human-maintained spec at index ${i - 1}`);
+      continue;
+    }
+
+    let spec;
+    try {
+      spec = await gw2Fetch(`/v2/specializations/${specId}`);
+    } catch (e) {
+      warnings.push(`spec${i}: failed to fetch /v2/specializations/${specId} — ${e.message.slice(0, 80)}`);
+      continue;
+    }
+
+    if (spec.name !== humanSpec.name) {
+      warnings.push(`spec${i}: name mismatch — JSON "${humanSpec.name}" vs decoded "${spec.name}" (id=${specId})`);
+    }
+
+    // Trait names: loose check — each human trait must exist in the spec's
+    // 3 minor + 9 major trait list. The GW2 build template encodes trait
+    // choices as row indices (Top/Middle/Bottom), not as specific trait
+    // indices, so a tight per-choice check would need the actual trait-ID
+    // mapping that's not in the decoded data.
+    const allTraitIds = [...(spec.minor_traits || []), ...(spec.major_traits || [])];
+    const nameById = await fetchTraitNamesById(allTraitIds);
+    const availableNames = new Set(nameById.values());
+    const humanTraits = Array.isArray(humanSpec.traits) ? humanSpec.traits : [];
+    for (let j = 0; j < humanTraits.length; j++) {
+      const t = humanTraits[j];
+      if (!availableNames.has(t)) {
+        warnings.push(`spec${i}.trait${j}: trait "${t}" (JSON) not found in spec "${spec.name}" (id=${specId})`);
+      }
+    }
+  }
+
+  // Skill names: tight check
+  const skillMap = [
+    ['heal', d.terrestrialHealingSkillPalette],
+    ['utility1', d.terrestrialUtilitySkillPalette1],
+    ['utility2', d.terrestrialUtilitySkillPalette2],
+    ['utility3', d.terrestrialUtilitySkillPalette3],
+    ['elite', d.terrestrialEliteSkillPalette],
+  ];
+  const skillIds = skillMap.filter(([, id]) => id).map(([, id]) => id);
+  const skillNameById = await fetchSkillNameById(skillIds);
+  for (const [slot, skillId] of skillMap) {
+    if (!skillId) continue;
+    const humanSkill = (build.skills || []).find(s => s.slot === slot);
+    if (!humanSkill) continue;
+    const decodedName = skillNameById.get(skillId);
+    if (!decodedName) {
+      warnings.push(`${slot}: skill id=${skillId} (decoded) not found in /v2/skills (id may be stale)`);
+    } else if (decodedName !== humanSkill.name) {
+      warnings.push(`${slot}: name mismatch — JSON "${humanSkill.name}" vs decoded "${decodedName}" (id=${skillId})`);
+    }
+  }
+
+  return { present: true, warnings, count: warnings.length };
+}
+
+// --- main flow ----------------------------------------------------------
+
 function processBuild(build, index) {
   const report = {
     id: build.id, name: build.name,
     resolved: 0, skipped: 0, failed: 0,
     lines: [], mutations: [], failures: [],
+    crossValidation: { present: false, warnings: [], count: 0 },
   };
   const slots = build.equipment && build.equipment.slots;
   if (!slots) {
@@ -290,6 +427,16 @@ function printReports(reports) {
         console.log(`    ${f.slot}: name="${f.name}" → ${f.reason}`);
       }
     }
+    if (r.crossValidation.present) {
+      if (r.crossValidation.warnings.length) {
+        console.log(`  CROSS-VALIDATION (buildCode present):`);
+        for (const w of r.crossValidation.warnings) {
+          console.log(`    WARN: ${w}`);
+        }
+      } else {
+        console.log(`  CROSS-VALIDATION (buildCode present): 0 mismatch(es)`);
+      }
+    }
     console.log(`  ${r.resolved} resolved · ${r.skipped} skipped · ${r.failed} failed`);
     console.log('');
   }
@@ -300,10 +447,16 @@ function printSummary(reports) {
     resolved: acc.resolved + r.resolved,
     skipped: acc.skipped + r.skipped,
     failed: acc.failed + r.failed,
+    cvWarnings: acc.cvWarnings + (r.crossValidation?.count || 0),
+    cvBuildsChecked: acc.cvBuildsChecked + (r.crossValidation?.present ? 1 : 0),
     builds: acc.builds + 1,
-  }), { resolved: 0, skipped: 0, failed: 0, builds: 0 });
+  }), { resolved: 0, skipped: 0, failed: 0, cvWarnings: 0, cvBuildsChecked: 0, builds: 0 });
   console.log('=== Summary ===');
-  console.log(`${totals.resolved} resolved · ${totals.skipped} skipped · ${totals.failed} failed across ${totals.builds} build(s)`);
+  let summary = `${totals.resolved} resolved · ${totals.skipped} skipped · ${totals.failed} failed across ${totals.builds} build(s)`;
+  if (totals.cvBuildsChecked > 0) {
+    summary += ` · ${totals.cvWarnings} cross-validation warning(s) across ${totals.cvBuildsChecked} build(s) with buildCode`;
+  }
+  console.log(summary);
   return totals;
 }
 
@@ -344,8 +497,13 @@ async function main() {
   }
   console.log(`Index: ${path.relative(process.cwd(), INDEX_PATH)} (built ${index.builtAt}, ${index.totalIds} items, ${index.uniqueNames} unique names)\n`);
 
-  // Process each build.
-  const reports = builds.map(b => processBuild(b, index));
+  // Process each build (slot resolution + chat-code cross-validation).
+  const reports = [];
+  for (const build of builds) {
+    const report = processBuild(build, index);
+    report.crossValidation = await crossValidateBuild(build);
+    reports.push(report);
+  }
   printReports(reports);
   const totals = printSummary(reports);
 
