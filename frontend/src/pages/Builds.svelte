@@ -288,11 +288,38 @@
         <h4 class="text-sm font-semibold text-foreground">Equipment</h4>
         {#if metaComparison?.equipmentSummary?.prefix}
           {@const metaPrefix = metaComparison.equipmentSummary.prefix}
-          {@const prefixable = build.equipment?.filter(eq => eq.prefix !== null) || []}
-          {@const matching = prefixable.filter(eq => eq.prefix === metaPrefix)}
-          <span class="rounded-full px-2 py-0.5 text-xs font-medium {prefixable.length > 0 && matching.length === prefixable.length ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'}">
-            {matching.length}/{prefixable.length} {metaPrefix}
-          </span>
+          {@const allMatches = (build.equipment || []).map(eq => {
+            const sm = metaSlots[eq.slot];
+            if (sm) return sm.match;
+            return eq.prefix === metaPrefix ? 'exact' : (eq.prefix ? 'off' : 'unknown');
+          })}
+          {@const total = allMatches.filter(m => m !== 'unknown').length}
+          {@const matching = allMatches.filter(m => m === 'exact' || m === 'prefix').length}
+          <!-- Three-state summary (curated slots only) -->
+          {@const curated = Object.values(metaSlots || {})}
+          {@const exactCount = curated.filter(m => m.match === 'exact').length}
+          {@const prefixCount = curated.filter(m => m.match === 'prefix').length}
+          {@const offCount = curated.filter(m => m.match === 'off').length}
+          <div class="flex flex-wrap items-center gap-1.5">
+            {#if curated.length > 0}
+              <span class="rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                {exactCount} ✓ exact
+              </span>
+              <span class="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                {prefixCount} ~ aligned
+              </span>
+              {#if offCount > 0}
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
+                  {offCount} ✗ off
+                </span>
+              {/if}
+            {:else}
+              <span class="text-xs text-muted-foreground">No meta data</span>
+            {/if}
+            <span class="rounded-full px-2 py-0.5 text-xs font-medium text-muted-foreground border">
+              {matching.length}/{total} {metaPrefix}
+            </span>
+          </div>
         {/if}
       </div>
 
@@ -333,14 +360,27 @@
                 <div class="min-w-0 flex-1">
                   {#if metaPrefix}
                     {@const suggestion = getMetaSuggestion(eq)}
+                    {@const slotMatch = metaSlots[eq.slot]}
                     <div class="flex items-center gap-1.5">
                       <span class="text-[11px] uppercase text-muted-foreground">Meta</span>
-                      {#if eq.prefix === metaPrefix}
-                        <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Prefix matches">✓</span>
-                      {:else if eq.prefix}
-                        <span class="text-amber-600 dark:text-amber-400 font-bold" title="Different prefix: {eq.prefix}">✗</span>
+                      {#if slotMatch}
+                        {#if slotMatch.match === 'exact'}
+                          <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Exact match — you have the meta item">✓</span>
+                        {:else if slotMatch.match === 'prefix'}
+                          <span class="text-amber-600 dark:text-amber-400 font-bold" title="Prefix match — same stats ({slotMatch.prefix}), different item">~</span>
+                        {:else if slotMatch.match === 'off'}
+                          <span class="text-red-600 dark:text-red-400 font-bold" title="Off-meta — {eq.prefix || 'no prefix'} vs meta {slotMatch.prefix}">✗</span>
+                        {:else}
+                          <span class="text-muted-foreground" title="No meta data for this slot">—</span>
+                        {/if}
                       {:else}
-                        <span class="text-muted-foreground">—</span>
+                        {#if eq.prefix === metaPrefix}
+                          <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Prefix matches meta ({metaPrefix})">✓</span>
+                        {:else if eq.prefix}
+                          <span class="text-amber-600 dark:text-amber-400 font-bold" title="Different prefix: {eq.prefix} vs meta {metaPrefix}">✗</span>
+                        {:else}
+                          <span class="text-muted-foreground" title="No prefix detected">—</span>
+                        {/if}
                       {/if}
                     </div>
                     {#if metaSlots[eq.slot]}

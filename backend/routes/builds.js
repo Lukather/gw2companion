@@ -184,21 +184,39 @@ router.get('/builds', async (req, res) => {
         };
       });
 
-      // Build metaSlots map for the response (issue #2 POC: only curated slots appear).
-      // prefix is taken from the build's equipment.prefix — the curator chose this ID to match it.
-      // Deriving the prefix from the item def is a v2 problem (HideSuffix items like Zojja's Visor
-      // don't carry their prefix in the name, so extractPrefix() returns null for them).
+      // Build metaSlots map with three-state match per slot (issue #5).
+      // prefix: item-name extraction first, build's equipment.prefix as fallback for HideSuffix items.
       const metaSlots = {};
       for (const [slotName, slotDef] of Object.entries(metaSlotDefs)) {
         if (!slotDef?.id) continue;
         const d = itemDefMap[slotDef.id] || {};
         const nm = d.name || `Item ${slotDef.id}`;
+        const metaPrefix = extractPrefix(nm) || metaBuild.equipment.prefix || null;
+
+        const charEquip = equipment.find(eq => eq.slot === slotName);
+        let match = 'unknown'; // ponytail: only set to unknown when no metaSlot, handled below
+        if (charEquip) {
+          if (charEquip.id === slotDef.id) {
+            match = 'exact';
+          } else {
+            const charPrefix = extractPrefix(charEquip.name);
+            if (charPrefix && metaPrefix && charPrefix === metaPrefix) {
+              match = 'prefix';
+            } else {
+              match = 'off';
+            }
+          }
+        } else {
+          match = 'off';
+        }
+
         metaSlots[slotName] = {
           id: slotDef.id,
           name: nm,
           icon: d.icon || '',
           wikiUrl: wikiUrl(nm),
-          prefix: metaBuild.equipment.prefix || null,
+          prefix: metaPrefix,
+          match,
         };
       }
 

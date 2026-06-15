@@ -1,328 +1,109 @@
-# GW2 Companion — Session State (Jun 13–15, 2026)
+# GW2 Companion — Session State (Jun 13–16, 2026)
 
 > Pick up here tomorrow: see **"What to do next"** at the bottom.
 
 ---
 
-## Day 6 — Jun 15, 2026: chat-code cross-validation (issue #4)
+## Day 7 — Jun 16, 2026: three-state match indicator (issue #5)
 
 ### What changed
 
-- **Shipped issue #4 end-to-end** — `scripts/resolve-meta-items.js` now does chat-code cross-validation. All 6 acceptance criteria met (one deliberate deviation on trait check, see below). Commit `f3e636d`. Issue closed.
-- **Added `@gw2/chatlink@^0.1.1` as a devDependency** (MIT, 25.5 KB unpacked, no transitive deps). The dev is on a Windows + npm setup; `npm install` at project root now installs the library.
-- **Live-tested all 4 paths** end-to-end: 8 builds with no `buildCode` (silent no-op), warrior + matching encoded build code (zero warnings), warrior with deliberately-wrong spec/trait/skill names (3 WARN lines, all greppable with `WARN:` prefix), warrior with malformed build code (`WARN: failed to decode — Invalid chatlink`). Exit code 0 in all cases (advisory, per spec).
+- **Shipped issue #5** — three-state match indicator per equipment slot. Backend computes `match: 'exact' | 'prefix' | 'off'` on each `metaSlots[slot]`. Frontend renders ✓ green (exact), ~ amber (prefix), ✗ red (off), — gray (unknown/fallback). Tooltips explain each state. Summary count at top of Equipment card adapted to count `exact + prefix` as "same prefix" hits. Build 160 KB, clean. Commit pending.
+- **Bug fix: `$bindable` in Input component.** Input.svelte destructured `value` as a plain prop, so `bind:value` on `<Input>` only flowed parent→child. User typed, `apiKey` stayed `''`, Setup page button stayed disabled forever. Changed to `value = $bindable('')` + `bind:value={value}` on native `<input>`. One-line fix.
 
-### Implementation notes (deviations / decisions made during the build, not in the issue body)
+### Implementation notes
 
-- **Trait check is LOOSE, not tight.** Issue #4's criterion #4 says "warn if the chosen trait ID's name doesn't match the corresponding `specializations[i].traits[j]` entry by name" — implying a tight per-trait-choice check. The GW2 build template encodes trait choices as 2-bit values per line (Top/Middle/Bottom row indices), not as specific trait indices. The actual trait ID for a given row index is determined by the in-game player selection and is **not in the decoded data**. The tight check would need a full reverse-mapping of (spec, row, index) → trait ID, which the decoded data doesn't carry. I went with a LOOSE check: for each spec, fetch all 12 traits (3 minor + 9 major), build a name set, and verify each human-curated trait name is in the set. This still catches the real failure mode (a trait being renamed in a patch) without needing the mapping. Documented in the script's docstring and in the closing comment on the issue.
-- **Stale skill IDs in the original spike.** The spike's example build code (`[&DQIkLTM+...=]`) decodes to skill IDs 4850, 4828, 4823, 168, 4802 — all of which now return `{"text":"no such id"}` from `/v2/skills`. The spike is from an older era; ArenaNet has reworked the skill ID space. The spec/trait IDs in the spike are still valid (Arms=36, Discipline=51, Berserker=18). This is actually a great demonstration of the cross-validation's value: a stale build code would have shown up as 5 skill-not-found WARN lines.
-- **Encoded a real Power Berserker build code** for testing: `[&DQIEOQs5EjlBOAAAMnYAAHp1AAD1dAAAh3YAAAAAAAAAAAAAAAAAAAAAAAAAAA==]`. Specs Strength=4, Tactics=11, Berserker=18. Skills Mending=14401, Outrage=30258, Shattering Blow=30074, Wild Blow=29941, Head Butt=30343. All current. Not committed (the dev adds build codes to builds they curate; no build in meta-builds.json has one yet).
-- **Built a temporary skill-name index** to look up the skill IDs (4701 skills, ~11s to build one-shot). Cleaned up — not committed, not gitignored (just deleted after use). If the dev ever needs to encode a real build code from in-game data, this script is in their toolbox (`scripts/_build-skill-index.js` was the prototype, deleted; can be recreated from the index-build code in `scripts/resolve-meta-items.js`).
-- **No buildCode in `meta-builds.json` committed.** All 9 builds skip cross-validation silently. The script is ready to use — when the dev adds a `buildCode` to any build, the next run will validate it.
-- **No new files** in this slice; all changes are to existing files (`scripts/resolve-meta-items.js`, `package.json`, `package-lock.json`).
+- **match computation** uses `extractPrefix(metaItemName) || metaBuild.equipment.prefix` for meta prefix — item name first, build prefix as fallback for HideSuffix items (same strategy as Day 4).
+- **no character equipment in slot → `'off'`**, not `'unknown'`. `'unknown'` is only for uncurated slots (no metaSlot entry at all).
+- **Summary count** filters `metaSlots[slot].match` for curated slots, falls back to legacy `eq.prefix === metaPrefix` for uncurated ones. Exact same number as before when no metaSlots data exists.
 
-### Commits added today
+### Files modified
 
-```
-f3e636d feat(builds): chat-code cross-validation in resolve-meta-items.js (issue #4)
-```
+- `backend/routes/builds.js` — match computation in metaSlots loop (+20 lines)
+- `frontend/src/pages/Builds.svelte` — three-state indicators with tooltips, updated summary count (+30 lines)
+- `frontend/src/lib/components/ui/Input.svelte` — `$bindable` fix (2 lines)
 
-### Files modified today (3 files, +175 / −5)
+### Mini-quirk introduced
 
-- `scripts/resolve-meta-items.js` — new `crossValidateBuild()` function (~90 lines), new fields on the per-build report, new section in `printReports`/`printSummary`, updated help text and docstring.
-- `package.json` — added `@gw2/chatlink` to `devDependencies`
-- `package-lock.json` — auto-regenerated by npm
+- **Input component now explicitly handles `value` binding.** Previously relied on `{...rest}` spread to forward `bind:value` from parent, which worked for initial render but not for updates. The `$bindable` pattern is the idiomatic Svelte 5 fix (per docs: `let { value = $bindable(), ...props } = $props()` and `bind:value={value}` on native element).
 
-### GitHub infra changes
+---
 
-- **Issue #4 body amended** to reflect the loose trait check (criterion #4 reworded). Closing comment points at commit `f3e636d` and explains the trait-mapping deviation.
-- **Issue #4 closed**.
+## Day 6 — Jun 15, 2026: chat-code cross-validation (issue #4)
 
-### Mini-quirk introduced today
-
-- **Loose trait check means false positives are possible in theory** — if a human-curated trait name is reused in multiple specs of the same profession, a wrong-spec assignment could pass the loose check. (E.g. if "Power" appeared as a trait name in two different specs.) In practice this is very rare — trait names are unique within a spec line, and the spec-name check (tight) catches the spec confusion before the trait check. Documented in case it ever matters.
-- **Skill ID churn between game patches** is the most likely source of cross-validation noise. The script's report makes it obvious (each stale ID shows up as a WARN line), so the dev can re-encode the build code with current IDs and move on. Worth keeping in mind for the eventual #8 (curate per-slot IDs for all 9 Power builds) — the dev may need to refresh build codes for all 9 builds at the same time when a major patch lands.
-- **The `wikiFetch` 403 bug** is still pending (Day 5 follow-up). Pre-existing, not blocking, worth filing as a separate issue.
+- Shipped `scripts/resolve-meta-items.js` chat-code cross-validation (commit `f3e636d`). Issue #4 closed.
+- Added `@gw2/chatlink@^0.1.1` as devDependency. Decodes `buildCode` → validates spec/trait/skill names against JSON. Trait check is LOOSE (GW2 template encodes row indices, not trait IDs). All 8 unvalidated builds skip silently (no `buildCode` field).
+- Live-tested: 8 no-buildCode builds (silent), warrior + matching code (clean), warrior + wrong names (3 WARNs), malformed code (decode error). Exit 0 always.
 
 ---
 
 ## Day 5 — Jun 15, 2026: resolve-meta-items helper script (issue #3)
 
-### What changed
-
-- **Shipped issue #3 end-to-end** — `scripts/resolve-meta-items.js` exists, all 10 acceptance criteria met, issue closed. Commit `34c1eaf`. Push pending.
-- **Live-tested all 6 slot shapes** against the local index: `{ id }` skipped, `{ name: 'X' }` resolved (exact match), `{ name: 'X' }` resolved (case-insensitive fallback), `{ name: 'BadName' }` failed, `{ statPrefix, slot }` skipped with #6 hint, `null` skipped silently. Both `--dry-run` and `--write` paths verified. Failure-mode behaviour: `--write` applies the successful resolutions and leaves the failed entry untouched for the curator to fix.
-- **Pivoted the resolution strategy mid-build.** The issue's acceptance criterion #4 specified `GET /v2/items?name=<name>`, but the official GW2 v2 API silently ignores `?name=` and returns the full ~74k item ID list regardless. I paused, reported the finding with four options, and the dev picked Option A: bulk-fetch once, cache locally as `scripts/.item-name-index.json` (gitignored), look up by name in-process. See "Implementation notes" below for the full story.
-
-### Implementation notes (deviations / decisions made during the build, not in the PRD)
-
-- **The official GW2 v2 `/v2/items` endpoint has no name-search support.** The `?name=` query parameter is parsed and discarded — the response is always the full array of all item IDs. Verified by calling `GET /v2/items?name=Zojja%27s%20Visor`, `GET /v2/items?name=NonexistentItemZZZ`, and `GET /v2/items` (no query) — all three returned identical 73,923-element arrays. Also confirmed the `/v2/items?id=<id>` endpoint returns a single object (not an array) and that `wikiFetch` is currently broken (403 — missing User-Agent header, separate bug).
-- **Resolution strategy = local name index.** On first run (or with `--refresh`), the script calls `/v2/items` once to get the ID list, then fetches all item objects in 200-id chunks via `/v2/items?ids=<chunk>`, then builds an in-memory `{ name: [id, ...] }` map and persists it to `scripts/.item-name-index.json` (~1.9 MB). Subsequent runs read the file and look up by name in-process. Index has a 7-day staleness warning but is still used (curator can pass `--refresh` to force a rebuild on game patches that rename items).
-- **First-run cost: ~3-5 min, not the "~1-2 min" I initially estimated.** ArenaNet rate-limits the `/v2/items?ids=` endpoint to roughly 1 request/second at the current traffic, and 73,923 items / 200 per chunk = 370 chunks. Live measurement: 285s wall time for 50 → 370 chunks. Worth it for the curator (instant subsequent runs, no external deps) but the estimate in the script's docstring and help text is honest at "~3-5 min" now.
-- **Ambiguous names are reported, not silently picked.** "Zojja's Visor" matches both `id=48075` (ascended) and `id=108106` (legendary skin). The script picks the first ID and prints `(ambiguous: 2 matches, picked first)` so the curator can manually pick the other ID if needed. Same for `zojja's pauldrons` (case-insensitive fallback) which also matched 2 IDs.
-- **Case-insensitive fallback added as a quality-of-life feature.** Snowcrows item names are normalized; the API names are not. The first lookup is exact; on miss, the script does a case-insensitive scan and prints `(case-insensitive match)`. Doesn't affect the `{ id }` shape (left untouched as the spec requires).
-- **Exit code: 1 if any failures, 0 otherwise.** Makes the script CI-friendly without changing the curator's UX (the report shows the same data either way). Not in the acceptance criteria but a free win.
-- **No `@gw2/chatlink` dependency added.** The session notes from Day 3 said issue #3 should add it as a devDependency, but re-reading the issue body, chat-code handling is explicitly the subject of issue #4 ("Helper script: chat-code cross-validation"). The script in #3 only does name→ID resolution. The dependency lands in #4.
-
-### Commits added today
-
-```
-34c1eaf feat(builds): add resolve-meta-items helper script (issue #3)
-```
-
-### Files added today (1 file, +376 lines)
-
-- `scripts/resolve-meta-items.js` — the curator's tool. Reuses `gw2Fetch` from `backend/services/gw2-api.js` and `chunkIds` from `backend/services/utils.js`. 376 lines incl. docstring.
-
-### Files modified today (1 file, +3 lines)
-
-- `.gitignore` — added `scripts/.item-name-index.json` so the local name index doesn't get committed
-
-### New files NOT in the repo (gitignored, expected)
-
-- `scripts/.item-name-index.json` — ~1.9 MB, 73,923 item IDs, 51,324 unique names. Rebuilt with `--refresh` or `rm`.
-
-### GitHub infra changes
-
-- **Issue #3 body amended** to reflect the local-index approach (acceptance criterion #4 rewritten). Closing comment points at commit `34c1eaf`.
-- **Issue #3 closed**.
-
-### Mini-quirk introduced today
-
-- **`?name=` on `/v2/items` is a known gotcha.** Worth a comment in `backend/services/gw2-api.js` near the cache helpers so a future developer doesn't waste time on it. Not committed; left as a follow-up.
-- **Local index is 1.9 MB on disk and ~5 MB parsed.** Not a concern for a one-time curator script, but if the index ever needs to live in the backend (e.g. for live runtime lookups), the design needs revisiting — the index belongs in a SQLite or similar, not in-process memory. Not in scope for any open issue.
-- **Index uses first-ID-wins for ambiguous names.** A more sophisticated approach would prefer the highest-rarity item, or the ascended/legendary variant specifically (which is what players actually want). Defer until the curator runs into a real ambiguity they care about — the report makes it visible.
-- **The `wikiFetch` 403 bug** (missing User-Agent header for `wiki.guildwars2.com`) is a pre-existing issue surfaced during #3. The wiki route works in production because it hits different MediaWiki endpoints that don't enforce User-Agent, but the search/parse endpoints do. Out of scope for #3; worth filing as a follow-up.
+- Shipped `scripts/resolve-meta-items.js` (commit `34c1eaf`). Issue #3 closed. 376 lines.
+- Pivoted to local name index — GW2 `/v2/items` API silently ignores `?name=`. Index cached at `scripts/.item-name-index.json` (~1.9 MB, gitignored). First run ~3-5 min. Supports `--dry-run` (default), `--write`, `--refresh`, `--build=<id>`, `--all`.
+- Live-tested all 6 slot shapes (resolved, case-insensitive, ambiguous, failed, statPrefix shorthand skip, null skip). Exit code 1 on failures.
 
 ---
 
-## Day 4 — Jun 14, 2026: helm POC implementation (issue #2)
+## Day 4 — Jun 14, 2026: helm POC (issue #2)
 
-### What changed
-
-- **Implemented issue #2 end-to-end** — the smallest vertical slice of the per-slot equipment IDs feature. Live-tested on the Lukather/Warrior character, pushed (commit `0d9ee2d`), issue closed.
-- **Pivoted from Guardian to Warrior for the POC.** The issue as drafted targeted `guardian-dragonhunter-power`, but the dev has no Guardian character to test against. The POC is anchored on `warrior-berserker-power` (same heavy + Berserker's stat profile — `Zojja's Visor`, id 48075, is a valid meta helm for both). Schema and code path are identical; moving the slot to Guardian is a one-line follow-up when a Guardian exists.
-- **Updated issue #2 body to reflect Warrior.** All 7 acceptance criteria changed from `<guardian>` → `<warrior>`, all ticked. Closing comment points at commit `0d9ee2d`. Issue title kept as `(guardian helm POC)` because renaming would change the URL slug — title is a label, body is the source of truth.
-- **Live-tested both seams from the PRD's testing strategy**: API response shape (verifying `metaComparison.metaSlots.Helm` has `id, name, icon, wikiUrl, prefix` all populated) and production build (157.98 kB, +2.5 kB, no Svelte warnings). No new test files added — the project's "no automated tests" state continues.
-
-### Implementation notes (deviations / decisions made during the build, not in the PRD)
-
-- **`metaSlot.prefix` is taken from the build's `equipment.prefix`, not derived from the item def.** The first helm ID picked (`Zojja's Visor`) has the `HideSuffix` flag, so its name doesn't carry the stat prefix — `extractPrefix("Zojja's Visor")` returns `null`. The curator chose the ID specifically to match the build's prefix anyway, so using the build's prefix is correct. Deriving the prefix from item stats (via `infix_upgrade.attributes` combos: Power/Precision/CritDamage → Berserker's, etc.) is a v2 problem — it would unblock items where the build prefix is unset or wrong. Not in scope for any open issue.
-- **Existing `equipmentSummary` is fully preserved** alongside the new `metaSlots` — the response is additive. The frontend picks `metaSlots[slot]` if present, else the synthetic `getMetaSuggestion()` string. The match indicator on the Helm row is still the legacy prefix ✓/✗ (three-state upgrade is #5).
-- **Live test methodology, not committed.** I tested by starting the backend in a backgrounded subshell, hitting `/api/builds?character=Lukather`, and inspecting the response. Then ran a production frontend build to catch Svelte syntax errors. Cleanup was imperfect — see "Mini-quirk introduced today".
-
-### Commits added today
-
-```
-0d9ee2d feat(builds): resolve per-slot meta item end-to-end (helm POC)
-```
-
-### Files modified today (3 files, +37 / −4)
-
-- `backend/data/meta-builds.json` — added `slots: { "Helm": { "id": 48075 } }` to `warrior-berserker-power`
-- `backend/routes/builds.js` — collect meta slot IDs, extend `/v2/items` batch, build `metaSlots` map, add to `metaComparison`
-- `frontend/src/pages/Builds.svelte` — `let metaSlots = $derived(...)`, conditional render of icon+link in the right column
-
-### GitHub infra changes
-
-- **Issue #2 body rewritten** to reflect Warrior build; all 7 acceptance criteria checked; "Resolved" section added pointing at `0d9ee2d`
-- **Issue #2 closed** with a comment explaining the Guardian→Warrior swap and pointing at the commit
-
-### Mini-quirk introduced today
-
-- **`HideSuffix` items: `metaSlot.prefix` comes from the build, not the item def.** A v2 follow-up could derive it from `infix_upgrade.attributes` combos so the API can return a prefix even when the build's `equipment.prefix` is unset or wrong. Not in scope for any open issue.
-- **Long-lived background processes in testing need a saved PID.** My `pkill -f "node server.js"` after the live API test didn't kill the orphaned process on Windows (MSYS `pkill` is unreliable for detached subshell children). The orphan held :3000 for ~4 minutes and caused an EADDRINUSE on the next `npm run dev`. Future test sessions: save the PID on start, kill by PID with `powershell Stop-Process -Id <pid>`, or use a one-shot Node verification script that doesn't bind a port.
+- Shipped issue #2 (commit `0d9ee2d`). End-to-end pipeline for one slot: `meta-builds.json` slot ID → backend batch-fetch → `metaSlots` in API response → frontend renders icon+name+wiki link in right column.
+- Pivoted Guardian→Warrior (dev has no Guardian). `Zojja's Visor` (id 48075) as `warrior-berserker-power` helm. `HideSuffix` prefix handled by falling back to build's `equipment.prefix`.
+- 3 files changed, +37/−4. Live-tested on Lukather/Warrior.
 
 ---
 
-## Day 3 — Jun 14, 2026: per-slot equipment IDs design + PRD + 7 issues
+## Day 3 — Jun 14, 2026: PRD + 8 GitHub issues
 
-### What changed
-
-- **Designed the per-slot equipment item IDs feature** for the Build Viewer. Replaces today's synthetic `"Berserker's Heavy Helm"` right-column string with the actual meta item (name + icon + wiki link) + a three-state match indicator (✓ exact / ~ same prefix / ✗ different prefix).
-- **Spiked the GW2 build template chat code decoder.** The format contains only skills, traits, specializations, and weapon **type** IDs — **no equipment data at all**. Killed the "use chat codes as the data source" idea (which would have simplified curation 10×) and reverted to manual name→ID resolution with a helper script.
-- **Wrote a comprehensive PRD** at `plans/per-slot-equipment-ids-prd.md` (~700 lines, 27 user stories, schema, work order, testing strategy, out-of-scope list).
-- **Published 8 issues** to the GitHub repo: 1 parent PRD + 7 vertical slices. Created two triage labels: `ready-for-agent` (green, AFK) and `ready-for-human` (red-orange, HITL).
-- **All design decisions locked in** (Q1–Q6 + helper + spike finding). See "Decisions table" below.
-
-### Design decisions (locked in)
-
-| #  | Decision                | Choice                                                                                          |
-| -- | ----------------------- | ----------------------------------------------------------------------------------------------- |
-| 1  | Granularity             | A — 1 build per profession, 9 builds for v1                                                     |
-| 2  | Slot coverage           | A — 15 core slots (6 armor + 5 trinkets + 4 weapons), skip backpack/aquatic/gathering           |
-| 3  | Schema                  | A — IDs only in JSON, resolved at request time; keep `prefix`/`weapons`/`runes`/`sigils` intact  |
-| 4  | Match semantics         | B — three-state ✓ exact / ~ same prefix / ✗ different prefix                                     |
-| 5  | Data source             | D — Snowcrows for v1, hardstuck.gg for v2 variants; helper resolves names or `{ statPrefix, slot }` to IDs |
-| 6  | Right-column rendering  | A — resolved item when curated, synthetic string fallback when not                              |
-| —  | Helper script           | `scripts/resolve-meta-items.js`, `--dry-run` default, `--write` to mutate                       |
-| —  | Chat code               | Spike proved no equipment data; used only for skill/trait/spec cross-validation in the helper   |
-
-### Commits added today
-
-```
-c4a7b01 chore: add build code decoder spike
-e7f6293 docs: add PRD for per-slot equipment item IDs
-```
-
-### New files
-
-- `plans/per-slot-equipment-ids-prd.md` — the full PRD
-- `scripts/spike-decode-build.mjs` — the build code decoder spike (reference; folded into the helper script in issue #3)
-
-### New GitHub infrastructure
-
-- **Label `ready-for-agent`** (green `#0E8A16`) — for AFK slices
-- **Label `ready-for-human`** (red-orange `#D93F0B`) — for HITL slices
-- **Issue #1**: PRD (parent, ready-for-agent)
-- **Issues #2–#8**: the 7 vertical slices (see "Issues graph" below)
-
-### Issues graph (8 issues, with dependency arrows)
-
-```
-#2  helm POC end-to-end  ──▶  #5  three-state match  ──▶  #7  summary count
-                                                       ▲
-#3  helper: name→ID     ──▶  #6  helper: stat-shorthand ┘
-                                                       │
-                                                       ▼
-                                                      #8  curate 9 builds (HITL)
-
-#4  helper: chat-code cross-validation  ──▶ (optional) #8
-```
-
-**Three independent starting points — three AFK agents can work in parallel:**
-
-- **#2** (helm POC) — proves the UI pipeline end-to-end on one slot, one build
-- **#3** (helper script basic) — the curator's tool, name→ID resolution
-- **#4** (chat-code cross-validation) — independent validation feature
-
-### Mini-quirk introduced today
-
-`@gw2/chatlink@0.1.1` (MIT, 12 KB) is the library we settled on for chat-code decoding. It supports the `BuildTemplate` type out of the box. The spike imports it from a local tarball; the helper script in #3 should add it as a devDependency.
+- Wrote `plans/per-slot-equipment-ids-prd.md` (~700 lines, 27 user stories, schema, work order).
+- Spiked GW2 build template decoder — confirmed chat codes have NO equipment data. Use `@gw2/chatlink` for cross-validation only.
+- Published 8 issues (#1–#8) to GitHub: 1 parent PRD + 7 vertical slices. Created `ready-for-agent` / `ready-for-human` labels.
+- Design decisions locked (granularity, slot coverage, schema, match semantics, data source, rendering).
 
 ---
 
 ## Day 2 — Jun 14, 2026: repo linking, brand cleanup
 
-### What changed
-
-- **Linked local folder to GitHub.** Initialized git, kept the existing remote `LICENSE` (MIT, 2026 Lorenzo Strambi) as the parent commit, first push was a clean fast-forward (no force needed). Repo: <https://github.com/Lukather/gw2companion.git>
-- **Deleted the stray `nul` file** (47 bytes, Windows reserved device name — artifact of a botched `>nul` shell redirect). Just `rm`'d, not `git rm`'d.
-- **Rewrote `README.md`** to match reality. Was meaningfully out of date: only mentioned 2 pages (real: 7), listed shipped features as "Future Features", missed 3 of 6 API key permissions, Project Structure tree was missing ~80% of files. Now has a hero banner, Tech Stack section, complete permissions list, accurate Project Structure, and a Security & Privacy section that calls out the leaked-key note.
-- **Added `CONTRIBUTING.md`** establishing [Conventional Commits](https://www.conventionalcommits.org/) as the project convention. Going forward: `feat:`, `fix:`, `docs:`, `refactor:`, `style:`, `perf:`, `chore:` etc. with optional scope. The two docs commits and the three follow-up commits all use the format.
-- **Added SVG favicon** (`frontend/public/favicon.svg`) — extracted the shield from the existing horizontal lockup into an icon-sized SVG. Replaces Vite's 1×1 transparent placeholder.
-- **Fixed sidebar logo bug.** `frontend/src/lib/logo.png` was 1.4 MB and turned out to be the **README banner** (same MD5 as `img/gw2Companion.png`), rendered at h-11 (~44 px). Replaced with `frontend/src/lib/logo.svg` (1.6 KB), −1,386,140 bytes on disk, same artwork as the favicon.
-
-### Commits added today (chronological)
-
-```
-678b5d1 perf(frontend): replace 1.4 MB sidebar logo with SVG
-8380d73 feat(frontend): add SVG favicon
-acd4e0e docs: add CONTRIBUTING.md with conventional commit guidelines
-2bc5534 Add image to README for visual enhancement   (you, from another device)
-a9d8afd docs: rewrite README to match current project state
-```
-
-(`3f853b5 Initial implementation` and `cb6882b Initial commit` are older.)
-
-### New files this session
-
-- `CONTRIBUTING.md` — commit + collaboration conventions
-- `frontend/public/favicon.svg` — shield favicon (1.6 KB)
-- `frontend/src/lib/logo.svg` — sidebar logo, same artwork as favicon (1.6 KB)
-
-### Files deleted this session
-
-- `nul` (root) — Windows reserved-name artifact
-- `frontend/src/lib/logo.png` — was the README banner used in the wrong place
-
-### Mini-quirk introduced today
-
-`frontend/public/favicon.svg` and `frontend/src/lib/logo.svg` are byte-for-byte identical and **should stay that way** when the brand changes. They live in different folders because Vite needs them there (HTML `<link>` resolves from `public/`, JS `import` resolves from `src/`). For 1.6 KB this is fine; if it ever bothers you, a `npm run sync:brand` script that copies one to the other is ~5 lines.
+- Linked to GitHub (`Lukather/gw2companion`). Added `CONTRIBUTING.md` (Conventional Commits). Rewrote README. Added SVG favicon + logo (1.6 KB each, byte-identical). Fixed sidebar logo (was 1.4 MB PNG).
+- Commits: `678b5d1`, `8380d73`, `acd4e0e`, `a9d8afd`.
 
 ---
 
 ## Day 1 — Jun 13, 2026: Tailwind + shadcn-svelte redesign
 
-### Major changes this session
-
-#### Tailwind CSS + shadcn-svelte redesign
-- Replaced ~800 lines of custom CSS across all pages with Tailwind utilities
-- Integrated shadcn-svelte components: Button, Card, Input, Badge, Separator, Table (all 14 UI components hand-built for Svelte 5)
-- Dark mode via Tailwind `dark:` prefix + `.dark` class on `<html>`
-- Inter font, consistent spacing/sizing, responsive sidebar
-- **All `<style>` blocks removed** from pages — zero custom CSS
-
-#### New layout
-- **Sidebar** (collapsible on mobile) with Lucide icons
-- **Home page** as default landing: app description + character grid
-- Click character → auto-navigates to Inventory with analysis pre-loaded
-- Shield logo (clickable → Home) in sidebar header
-- Page transitions (fade, 150ms) on navigation
-
-#### Builds page improvements
-- Two-column equipment comparison: character item (left) vs meta recommendation (right)
-- Rarity-colored left borders on equipment items
-- Consolidated meta warning badges (per-section instead of per-skill)
-- Stat prefix comparison with ✓/✗ indicators
-- Generated per-slot meta suggestions (armor weight + prefix + rune/sigil)
-- Wider skill slots with hover tooltips for truncated names
-- Tighter trait grid (name | checkmark columns)
-
-#### Bug fixes
-- **Story journal**: Backend now properly fetches `/v2/stories/seasons` and `/v2/stories` to map story IDs → campaigns. Previously treated `char.story` as object instead of flat array.
-- **`children` snippet**: All 14 UI components now explicitly destructure `children` from `$props()` — required for Svelte 5 `{@render children?.()}` to work.
-- **`class:` directive**: Replaced `class:bg-action-sell-bg/10={condition}` patterns — Svelte's `class:` doesn't support `/` in class names.
-
-#### Home page + character selection
-- Extracted character grid from Inventory into new `Home.svelte`
-- `selectedChar` writable store in `stores.js` — shared between Home and Inventory
-- `$effect` in App.svelte auto-navigates to Inventory when character selected
-
-#### Post-redesign cleanup (see `plans/issues-and-quick-wins.md`)
-- **Repo hygiene** — added root `gw2-companion/.gitignore` (covers `node_modules/`, `frontend/dist/`, `backend/data/config.json`, `*.bak`, etc.) and `backend/data/.gitkeep` so the data dir stays tracked. Deleted `App.svelte.bak`, `Inventory.svelte.bak2`, unused `Badge.svelte` (UI component), and unused `logo-shield.svg`.
-- **Tailwind safelist** — Inventory's per-row rarity badges were built via template literal (`bg-rarity-${rarity}-bg`), which Tailwind's content scanner can't see. Added a regex `safelist` in `tailwind.config.js` covering 8 rarities × 2 properties (bg/fg). Build now contains all 16 classes.
-- **Shared helpers** — extracted `PROFESSION_COLORS` to `lib/professions.js` (was duplicated in Home/Inventory/Story), `formatGold()` to `lib/format.js` (was duplicated in Inventory/Materials), and a shared `lib/components/Spinner.svelte` using Lucide's `Loader2` (replaced 6 inline spinner SVGs across pages).
-- **Polished** — removed 3 debug `console.*` from `main.js`. Simplified `loadStage` init in Inventory (was a non-reactive `$state($selectedChar ? ...)` snapshot). Gated `/api/debug` behind `NODE_ENV !== 'production'` (404 in prod, 200 in dev). Confirmed `PORT` env-var read was already in place.
-- **Bundle** — JS dropped 157.4 kB → 155.4 kB after dedup. CSS unchanged.
+- Replaced ~800 lines custom CSS with Tailwind. Integrated 14 shadcn-svelte components (Svelte 5, hand-built). Dark mode, Inter font, responsive sidebar, page transitions.
+- Bug fixes: Story journal backend, `children` snippet destructuring, `class:` directive syntax.
+- Post-redesign cleanup: shared helpers (`format.js`, `professions.js`, `Spinner.svelte`), Tailwind safelist, removed debug `console.*`, gated `/api/debug`. JS bundle 157.4→155.4 KB.
 
 ---
 
 ## Current features (all working)
 
-| Feature                                                  | Status |
-| -------------------------------------------------------- | ------ |
-| API key setup & validation                               | ✅     |
-| Home page (app intro + character grid)                   | ✅     |
-| Character selection → Inventory analysis                 | ✅     |
-| Item categorization: sell / salvage / keep / use         | ✅     |
-| Trading Post prices                                      | ✅     |
-| Light/dark theme (persisted)                             | ✅     |
-| **Material Storage** analyzer                            | ✅     |
-| **Achievement Tracker** (progress bars, filters)         | ✅     |
-| **Story Journal** (per-character, all campaigns)         | ✅     |
-| **Build Viewer** (specs/traits/skills vs meta)           | ✅     |
-| **Per-slot meta items** (resolved helm in right column, 1 of 15 slots curated) | ✅ Day 4 (POC) |
-| **resolve-meta-items.js helper script** (name→ID resolution, local index, --write) | ✅ Day 5 |
-| **Chat-code cross-validation** in the helper (decodes `buildCode`, warns on spec/trait/skill drift) | ✅ Day 6 |
-| Sidebar nav (Home · Inventory · Materials · Builds · Achievements · Story · Setup) | ✅     |
-| SVG favicon (Day 2)                                      | ✅     |
-| Conventional Commits convention (Day 2)                  | ✅     |
+| Feature | Status |
+| --- | --- |
+| API key setup & validation | ✅ |
+| Home page + character grid | ✅ |
+| Character selection → Inventory | ✅ |
+| Item categorization (sell/salvage/keep/use) | ✅ |
+| Trading Post prices | ✅ |
+| Light/dark theme | ✅ |
+| Material Storage analyzer | ✅ |
+| Achievement Tracker | ✅ |
+| Story Journal | ✅ |
+| Build Viewer (specs/traits/skills vs meta) | ✅ |
+| Per-slot meta items (1 of 15 slots curated) | ✅ Day 4 |
+| resolve-meta-items helper script | ✅ Day 5 |
+| Chat-code cross-validation | ✅ Day 6 |
+| Three-state match indicator (✓/~ / ✗) | ✅ Day 7 |
 
 ---
 
-## How to start (tomorrow)
+## How to start
 
 ```bash
 cd gw2-companion
-git pull                  # sync with remote first
-npm install               # postinstall hooks install backend + frontend
-npm run dev               # backend :3000, frontend :5173
+git pull && npm install && npm run dev   # backend :3000, frontend :5173
 ```
-
-If a `git pull` brings new commits, read the bodies — follow any `BREAKING CHANGE:` footers.
-
-Commit messages follow Conventional Commits (see `CONTRIBUTING.md`). One logical change per commit, scope in parens when useful (e.g. `feat(builds): ...`, `fix(analyzer): ...`).
 
 ---
 
@@ -330,137 +111,57 @@ Commit messages follow Conventional Commits (see `CONTRIBUTING.md`). One logical
 
 ```
 gw2-companion/
-├── package.json              # Root scripts (concurrently + postinstall)
-├── README.md                 # Hero, features, tech stack, setup, security
-├── CONTRIBUTING.md           # Conventional Commits + dev conventions  (Day 2)
-├── LICENSE                   # MIT
-├── SESSION.md                # This file
-├── .gitignore
-├── img/
-│   ├── gw2Companion.png           # README banner
-│   └── gw2_companion_logo_no_sub.svg
 ├── plans/
-│   ├── issues-and-quick-wins.md
-│   ├── tailwind-redesign.md
-│   └── per-slot-equipment-ids-prd.md   # PRD for per-slot item IDs    (Day 3)
-├── scripts/                            #                                     (Day 3)
-│   ├── spike-decode-build.mjs          # Chat code decoder reference
-│   └── resolve-meta-items.js           # Curator's tool: name→ID     (Day 5)
-│       # .item-name-index.json (gitignored, 1.9 MB) lives here too
-│
+│   └── per-slot-equipment-ids-prd.md
+├── scripts/
+│   ├── resolve-meta-items.js
+│   └── spike-decode-build.mjs
 ├── backend/
-│   ├── server.js             # Express app, route mounting, static serving
-│   ├── db.js                 # API key persistence (JSON file)
+│   ├── server.js
 │   ├── routes/
-│   │   ├── key.js            # /api/key — validate + store
-│   │   ├── characters.js
-│   │   ├── inventory.js
-│   │   ├── analyze.js
-│   │   ├── materials.js
-│   │   ├── achievements.js
-│   │   ├── story.js          # FIXED: fetches /v2/stories/seasons + /v2/stories
-│   │   ├── builds.js         # extractPrefix() for stat comparison
-│   │   └── debug.js          # GATED: 404 unless NODE_ENV !== 'production'
-│   ├── services/
-│   │   ├── gw2-api.js        # ArenaNet API client + in-memory cache
-│   │   ├── wiki.js
-│   │   ├── analyzer.js
-│   │   └── utils.js
+│   │   └── builds.js          # three-state match (Day 7)
 │   └── data/
-│       ├── .gitkeep
-│       ├── config.json       # gitignored — your API key lives here
-│       └── meta-builds.json  # 9 professions, general equipment (prefix/weapons/runes/sigils)
-│
-└── frontend/
-    ├── vite.config.js        # Proxies /api → :3000
-    ├── tailwind.config.js    # Rarity safelist (8 rarities × 2)
-    ├── index.html            # <link rel="icon" href="/favicon.svg">  (Day 2)
-    ├── public/
-    │   └── favicon.svg       # Shield favicon                          (Day 2)
-    └── src/
-        ├── main.js
-        ├── app.css
-        ├── App.svelte        # Sidebar + header + page routing + transitions
-        ├── lib/
-        │   ├── api.js
-        │   ├── stores.js     # hasKey, loading, error, selectedChar
-        │   ├── theme.js
-        │   ├── utils.js      # cn() — clsx + tailwind-merge
-        │   ├── format.js     # formatGold()
-        │   ├── professions.js# PROFESSION_COLORS + helper
-        │   ├── logo.svg      # Shield logo, mirrors favicon.svg       (Day 2)
-        │   └── components/
-        │       ├── Spinner.svelte
-        │       └── ui/       # shadcn-svelte components (Button, Card*, Input,
-        │                     #   Separator, Table*) — 15 total
-        └── pages/
-            ├── Home.svelte
-            ├── Setup.svelte
-            ├── Inventory.svelte
-            ├── Materials.svelte
-            ├── Achievements.svelte
-            ├── Story.svelte
-            └── Builds.svelte
+│       └── meta-builds.json   # warrior-bererker-power has slots.Helm
+├── frontend/
+│   └── src/
+│       ├── pages/
+│       │   ├── Builds.svelte   # three-state indicator (Day 7)
+│       │   └── Setup.svelte
+│       └── lib/
+│           └── components/ui/
+│               └── Input.svelte  # $bindable fix (Day 7)
 ```
 
 ---
 
 ## Known quirks
 
-- `util._extend` deprecation warning from npm/concurrently — harmless.
-- Meta builds use **trait/skill NAMES** (resolved to IDs at runtime via GW2 API).
-- Builds backend caches specialization list in memory (`SPEC_CACHE`).
-- shadcn-svelte components built manually (CLI requires TTY + Tailwind v4).
-- Equipment stat prefix extraction uses a hardcoded list — may miss some prefixes.
-- Meta builds have general equipment recommendations, not per-slot item IDs. **Being addressed** by issues #2–#8 (parent #1).
-- **API key in `backend/data/config.json` is gitignored** — must be entered manually on first run. Out-of-band key rotation still pending (leaked key is in pushed history, treat as compromised).
-- **Tailwind `safelist`** in `tailwind.config.js` covers 8 rarities × 2 properties for Inventory's dynamic class names. New rarity colors must be added to the safelist regex + `tailwind.config.js` color block together.
-- **`favicon.svg` and `logo.svg` are intentionally duplicate** (Day 2) — keep in sync when the brand changes. See "Mini-quirk introduced today" above.
-- **`@gw2/chatlink` is referenced by the spike but not yet in any `package.json`** (Day 3). The chat-code cross-validation script in issue #4 should add it as a devDependency; #3 (#3's script doesn't touch chat codes). → **resolved Day 6** as a devDependency; used by the cross-validation logic.
-- **Live-test orphans on :3000** (Day 4) — MSYS `pkill -f "node server.js"` doesn't reliably kill detached subshell children. If you see `EADDRINUSE: :::3000` on `npm run dev` after a test session, find the orphan with `netstat -ano | grep 3000` and `powershell Stop-Process -Id <pid>`. See Day 4's "Mini-quirk" for the long form.
-- **`HideSuffix` items don't carry their stat prefix in the name** (Day 4) — `metaSlot.prefix` is taken from the build's `equipment.prefix`, not derived from the item def. See Day 4's "Implementation notes" for why and the v2 follow-up.
-- **`?name=` on `/v2/items` is silently ignored** (Day 5) — the official GW2 v2 API has no name-search endpoint. The `resolve-meta-items.js` helper works around this with a local item-name index cached at `scripts/.item-name-index.json` (gitignored). Worth a code comment in `backend/services/gw2-api.js` so future devs don't burn time on it. See Day 5's "Mini-quirk" for the long form.
-- **`wikiFetch` returns 403 on MediaWiki search/parse endpoints** (Day 5, pre-existing) — the GW2 wiki now requires a `User-Agent` header on search/parse endpoints, and `wikiFetch` doesn't set one. The existing wiki routes still work because they hit other MediaWiki endpoints (page fetch, file info) that don't enforce User-Agent. Worth filing as a follow-up. See Day 5's "Mini-quirk" for the long form.
+- API key in `backend/data/config.json` is gitignored — must be entered manually.
+- `?name=` on `/v2/items` is silently ignored. The helper script uses a local index instead.
+- `wikiFetch` returns 403 on some MediaWiki endpoints (missing User-Agent header).
+- Live-test orphans on :3000 — MSYS `pkill` unreliable on Windows. Kill by PID.
+- `HideSuffix` items: prefix derived from build's `equipment.prefix`, not item def.
+- Trait cross-validation is LOOSE (GW2 template uses row indices, not trait IDs).
+- `favicon.svg` and `logo.svg` are intentionally duplicate — keep in sync.
 
 ---
 
 ## What to do next
 
-> **No new AFK starting points remain** — #2, #3, and #4 are all done. The next slice is [#5](https://github.com/Lukather/gw2companion/issues/5) (three-state match indicator), unblocked by #2's completed work. It can run in parallel with #6 (helper script: stat-selectable shorthand) and the data-fill work for #8 (curate per-slot IDs for all 9 Power builds). Then #7 → #8. #8 is the only HITL slice.
+**#5 is done.** Remaining slices:
 
-### One-line follow-up (not in the issue graph, easy to do anytime)
+| # | Title | Type | Blocked by |
+| --- | --- | --- | --- |
+| [#6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand | AFK | #3 |
+| [#7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗" | AFK | #5 ✅ |
+| [#8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 builds | **HITL** | #3, #6 |
 
-- **Move the helm slot from `warrior-berserker-power` to `guardian-dragonhunter-power`.** Single line change in `meta-builds.json` (move the `slots` block from one build's `equipment` to another's). Do it when a Guardian character is available to test against. The schema and code path are identical — no other code changes needed.
+#6 and #7 can run in parallel (both AFK, unblocked). Then #8 (HITL, the data work).
 
-### Work order (8 issues, dependency-driven)
+### What NOT to do (cumulative)
 
-| #  | Title                                                          | Type     | Blocked by           |
-| -- | -------------------------------------------------------------- | -------- | -------------------- |
-| [1](https://github.com/Lukather/gw2companion/issues/1) | PRD: per-slot equipment item IDs (parent)                      | —        | —                    |
-| [2](https://github.com/Lukather/gw2companion/issues/2) | Helm POC end-to-end (one slot, one build)                      | ✅ done (`0d9ee2d`) | —                    |
-| [3](https://github.com/Lukather/gw2companion/issues/3) | Helper script: name→ID resolution                              | ✅ done (`34c1eaf`) | —                    |
-| [4](https://github.com/Lukather/gw2companion/issues/4) | Helper script: chat-code cross-validation                      | ✅ done (`f3e636d`) | —                    |
-| [5](https://github.com/Lukather/gw2companion/issues/5) | Three-state match indicator per slot                           | AFK      | #2                   |
-| [6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand                       | AFK      | #3                   |
-| [7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗"                                | AFK      | #5                   |
-| [8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 Power builds                     | **HITL** | #3, #6 (#4 optional) |
-
-#2, #3, and #4 are all done. #5 (three-state match) is the next slice, unblocked by #2's completed work. It can run in parallel with #6 (stat-shorthand helper) and the data-fill work for #8. Then #7 → #8.
-
-### Other ideas (not yet started)
-
-The full brainstorm (build template chat-code import/export, more meta builds per profession, animated progress bars on Achievements, collapsible sections on Builds/Achievements, persistent per-user meta-build customization, "All characters" mode for Inventory, unified `selectedChar` model) lives in `README.md` under "Ideas / Possible Next Steps." Pick from there if the per-slot IDs work is done and you want a different challenge.
-
-### What NOT to do
-
-- Don't commit `backend/data/config.json` (already gitignored, but easy to forget).
-- Don't `git push` without `git pull` first — the project is solo but other devices (yours, presumably the screenshot commit) can land commits between sessions.
-- Don't `git rm nul` if you ever see it again — just `rm` it. (See CONTRIBUTING.md "Don't commit" for why.)
-- Don't refactor the side-by-side equipment comparison in `Builds.svelte` without re-reading Day 1's "Builds page improvements" bullet — there's context on why certain layout decisions were made.
-- Don't start a per-slot IDs implementation without first reading `plans/per-slot-equipment-ids-prd.md` — the schema, match semantics, and helper script behavior are all locked in there. Re-deriving them risks drift.
-- Don't close or modify [issue #1](https://github.com/Lukather/gw2companion/issues/1) (the parent PRD). It's a reference for the child issues.
-- **Don't refactor the `extractPrefix()` hardcoded list** without also revisiting how `metaSlot.prefix` is computed in `backend/routes/builds.js` (Day 4) — the two are conceptually related, and changes to one may have implications for the other.
-- **Don't forget to kill testing orphans** before running `npm run dev` (Day 4). See "Known quirks" for the recovery command.
-- **Don't "fix" the `?name=` on `/v2/items` expectation** (Day 5) — the API doesn't support it. The local-index approach in `scripts/resolve-meta-items.js` is the workaround. If ArenaNet ever adds real name-search to the API, switching the helper to use it is fine, but the current design is correct as-is.
-- **Don't commit `scripts/.item-name-index.json`** (Day 5) — it's gitignored, ~1.9 MB, and rebuildable. If a future dev commits it by accident, the safest move is `git rm --cached` and a `git commit --amend` (or a new `chore:` commit if the bad one is already pushed).
-- **Don't "fix" the loose trait check** in the cross-validation (Day 6) — the GW2 build template encodes trait choices as Top/Middle/Bottom row indices, not as specific trait indices, so a tight check needs data the decoder doesn't expose. The loose check (each JSON trait name verified to exist in the spec's full trait list) still catches the real failure mode (a trait being renamed). If ArenaNet ever publishes a per-trait-ID build-template format, the loose check can be tightened; until then, leave it.
+- Don't commit `backend/data/config.json` or `scripts/.item-name-index.json` (gitignored).
+- Don't close/modify issue #1 (parent PRD).
+- Don't refactor `extractPrefix()` without revisiting `metaSlot.prefix` in `builds.js` (Day 4).
+- Don't "fix" the `?name=` API assumption or the loose trait check — both are by design.
+- Don't `git push` without `git pull` first.
