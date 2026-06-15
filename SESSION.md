@@ -1,6 +1,56 @@
-# GW2 Companion — Session State (Jun 13–14, 2026)
+# GW2 Companion — Session State (Jun 13–15, 2026)
 
 > Pick up here tomorrow: see **"What to do next"** at the bottom.
+
+---
+
+## Day 5 — Jun 15, 2026: resolve-meta-items helper script (issue #3)
+
+### What changed
+
+- **Shipped issue #3 end-to-end** — `scripts/resolve-meta-items.js` exists, all 10 acceptance criteria met, issue closed. Commit `34c1eaf`. Push pending.
+- **Live-tested all 6 slot shapes** against the local index: `{ id }` skipped, `{ name: 'X' }` resolved (exact match), `{ name: 'X' }` resolved (case-insensitive fallback), `{ name: 'BadName' }` failed, `{ statPrefix, slot }` skipped with #6 hint, `null` skipped silently. Both `--dry-run` and `--write` paths verified. Failure-mode behaviour: `--write` applies the successful resolutions and leaves the failed entry untouched for the curator to fix.
+- **Pivoted the resolution strategy mid-build.** The issue's acceptance criterion #4 specified `GET /v2/items?name=<name>`, but the official GW2 v2 API silently ignores `?name=` and returns the full ~74k item ID list regardless. I paused, reported the finding with four options, and the dev picked Option A: bulk-fetch once, cache locally as `scripts/.item-name-index.json` (gitignored), look up by name in-process. See "Implementation notes" below for the full story.
+
+### Implementation notes (deviations / decisions made during the build, not in the PRD)
+
+- **The official GW2 v2 `/v2/items` endpoint has no name-search support.** The `?name=` query parameter is parsed and discarded — the response is always the full array of all item IDs. Verified by calling `GET /v2/items?name=Zojja%27s%20Visor`, `GET /v2/items?name=NonexistentItemZZZ`, and `GET /v2/items` (no query) — all three returned identical 73,923-element arrays. Also confirmed the `/v2/items?id=<id>` endpoint returns a single object (not an array) and that `wikiFetch` is currently broken (403 — missing User-Agent header, separate bug).
+- **Resolution strategy = local name index.** On first run (or with `--refresh`), the script calls `/v2/items` once to get the ID list, then fetches all item objects in 200-id chunks via `/v2/items?ids=<chunk>`, then builds an in-memory `{ name: [id, ...] }` map and persists it to `scripts/.item-name-index.json` (~1.9 MB). Subsequent runs read the file and look up by name in-process. Index has a 7-day staleness warning but is still used (curator can pass `--refresh` to force a rebuild on game patches that rename items).
+- **First-run cost: ~3-5 min, not the "~1-2 min" I initially estimated.** ArenaNet rate-limits the `/v2/items?ids=` endpoint to roughly 1 request/second at the current traffic, and 73,923 items / 200 per chunk = 370 chunks. Live measurement: 285s wall time for 50 → 370 chunks. Worth it for the curator (instant subsequent runs, no external deps) but the estimate in the script's docstring and help text is honest at "~3-5 min" now.
+- **Ambiguous names are reported, not silently picked.** "Zojja's Visor" matches both `id=48075` (ascended) and `id=108106` (legendary skin). The script picks the first ID and prints `(ambiguous: 2 matches, picked first)` so the curator can manually pick the other ID if needed. Same for `zojja's pauldrons` (case-insensitive fallback) which also matched 2 IDs.
+- **Case-insensitive fallback added as a quality-of-life feature.** Snowcrows item names are normalized; the API names are not. The first lookup is exact; on miss, the script does a case-insensitive scan and prints `(case-insensitive match)`. Doesn't affect the `{ id }` shape (left untouched as the spec requires).
+- **Exit code: 1 if any failures, 0 otherwise.** Makes the script CI-friendly without changing the curator's UX (the report shows the same data either way). Not in the acceptance criteria but a free win.
+- **No `@gw2/chatlink` dependency added.** The session notes from Day 3 said issue #3 should add it as a devDependency, but re-reading the issue body, chat-code handling is explicitly the subject of issue #4 ("Helper script: chat-code cross-validation"). The script in #3 only does name→ID resolution. The dependency lands in #4.
+
+### Commits added today
+
+```
+34c1eaf feat(builds): add resolve-meta-items helper script (issue #3)
+```
+
+### Files added today (1 file, +376 lines)
+
+- `scripts/resolve-meta-items.js` — the curator's tool. Reuses `gw2Fetch` from `backend/services/gw2-api.js` and `chunkIds` from `backend/services/utils.js`. 376 lines incl. docstring.
+
+### Files modified today (1 file, +3 lines)
+
+- `.gitignore` — added `scripts/.item-name-index.json` so the local name index doesn't get committed
+
+### New files NOT in the repo (gitignored, expected)
+
+- `scripts/.item-name-index.json` — ~1.9 MB, 73,923 item IDs, 51,324 unique names. Rebuilt with `--refresh` or `rm`.
+
+### GitHub infra changes
+
+- **Issue #3 body amended** to reflect the local-index approach (acceptance criterion #4 rewritten). Closing comment points at commit `34c1eaf`.
+- **Issue #3 closed**.
+
+### Mini-quirk introduced today
+
+- **`?name=` on `/v2/items` is a known gotcha.** Worth a comment in `backend/services/gw2-api.js` near the cache helpers so a future developer doesn't waste time on it. Not committed; left as a follow-up.
+- **Local index is 1.9 MB on disk and ~5 MB parsed.** Not a concern for a one-time curator script, but if the index ever needs to live in the backend (e.g. for live runtime lookups), the design needs revisiting — the index belongs in a SQLite or similar, not in-process memory. Not in scope for any open issue.
+- **Index uses first-ID-wins for ambiguous names.** A more sophisticated approach would prefer the highest-rarity item, or the ascended/legendary variant specifically (which is what players actually want). Defer until the curator runs into a real ambiguity they care about — the report makes it visible.
+- **The `wikiFetch` 403 bug** (missing User-Agent header for `wiki.guildwars2.com`) is a pre-existing issue surfaced during #3. The wiki route works in production because it hits different MediaWiki endpoints that don't enforce User-Agent, but the search/parse endpoints do. Out of scope for #3; worth filing as a follow-up.
 
 ---
 
@@ -211,6 +261,7 @@ a9d8afd docs: rewrite README to match current project state
 | **Story Journal** (per-character, all campaigns)         | ✅     |
 | **Build Viewer** (specs/traits/skills vs meta)           | ✅     |
 | **Per-slot meta items** (resolved helm in right column, 1 of 15 slots curated) | ✅ Day 4 (POC) |
+| **resolve-meta-items.js helper script** (name→ID resolution, local index, --write) | ✅ Day 5 |
 | Sidebar nav (Home · Inventory · Materials · Builds · Achievements · Story · Setup) | ✅     |
 | SVG favicon (Day 2)                                      | ✅     |
 | Conventional Commits convention (Day 2)                  | ✅     |
@@ -250,7 +301,9 @@ gw2-companion/
 │   ├── tailwind-redesign.md
 │   └── per-slot-equipment-ids-prd.md   # PRD for per-slot item IDs    (Day 3)
 ├── scripts/                            #                                     (Day 3)
-│   └── spike-decode-build.mjs          # Chat code decoder reference
+│   ├── spike-decode-build.mjs          # Chat code decoder reference
+│   └── resolve-meta-items.js           # Curator's tool: name→ID     (Day 5)
+│       # .item-name-index.json (gitignored, 1.9 MB) lives here too
 │
 ├── backend/
 │   ├── server.js             # Express app, route mounting, static serving
@@ -320,15 +373,17 @@ gw2-companion/
 - **API key in `backend/data/config.json` is gitignored** — must be entered manually on first run. Out-of-band key rotation still pending (leaked key is in pushed history, treat as compromised).
 - **Tailwind `safelist`** in `tailwind.config.js` covers 8 rarities × 2 properties for Inventory's dynamic class names. New rarity colors must be added to the safelist regex + `tailwind.config.js` color block together.
 - **`favicon.svg` and `logo.svg` are intentionally duplicate** (Day 2) — keep in sync when the brand changes. See "Mini-quirk introduced today" above.
-- **`@gw2/chatlink` is referenced by the spike but not yet in any `package.json`** (Day 3). The helper script in issue #3 should add it as a devDependency.
+- **`@gw2/chatlink` is referenced by the spike but not yet in any `package.json`** (Day 3). The chat-code cross-validation script in issue #4 should add it as a devDependency; #3 (#3's script doesn't touch chat codes).
 - **Live-test orphans on :3000** (Day 4) — MSYS `pkill -f "node server.js"` doesn't reliably kill detached subshell children. If you see `EADDRINUSE: :::3000` on `npm run dev` after a test session, find the orphan with `netstat -ano | grep 3000` and `powershell Stop-Process -Id <pid>`. See Day 4's "Mini-quirk" for the long form.
 - **`HideSuffix` items don't carry their stat prefix in the name** (Day 4) — `metaSlot.prefix` is taken from the build's `equipment.prefix`, not derived from the item def. See Day 4's "Implementation notes" for why and the v2 follow-up.
+- **`?name=` on `/v2/items` is silently ignored** (Day 5) — the official GW2 v2 API has no name-search endpoint. The `resolve-meta-items.js` helper works around this with a local item-name index cached at `scripts/.item-name-index.json` (gitignored). Worth a code comment in `backend/services/gw2-api.js` so future devs don't burn time on it. See Day 5's "Mini-quirk" for the long form.
+- **`wikiFetch` returns 403 on MediaWiki search/parse endpoints** (Day 5, pre-existing) — the GW2 wiki now requires a `User-Agent` header on search/parse endpoints, and `wikiFetch` doesn't set one. The existing wiki routes still work because they hit other MediaWiki endpoints (page fetch, file info) that don't enforce User-Agent. Worth filing as a follow-up. See Day 5's "Mini-quirk" for the long form.
 
 ---
 
 ## What to do next
 
-> **Tomorrow's first commits should be [issue #3](https://github.com/Lukather/gw2companion/issues/3) (helper script: name→ID resolution) and [issue #4](https://github.com/Lukather/gw2companion/issues/4) (helper script: chat-code cross-validation).** Both are independent AFK starting points (no shared dependencies) — two agents can work in parallel. #3 unblocks #6; #4 is standalone but its cross-validation output feeds into #8. After both land, #5 (three-state match) can run (unblocked by the #2 work). Then #6 → #7 → #8.
+> **Tomorrow's first commit should be [issue #4](https://github.com/Lukather/gw2companion/issues/4) (helper script: chat-code cross-validation).** #3 is done. #4 is the remaining independent AFK starting point; it can work in parallel with the data-fill work. After #4 lands, #5 (three-state match) can run (unblocked by #2's completed work and the curator's data in #3). Then #6 → #7 → #8.
 
 ### One-line follow-up (not in the issue graph, easy to do anytime)
 
@@ -340,14 +395,14 @@ gw2-companion/
 | -- | -------------------------------------------------------------- | -------- | -------------------- |
 | [1](https://github.com/Lukather/gw2companion/issues/1) | PRD: per-slot equipment item IDs (parent)                      | —        | —                    |
 | [2](https://github.com/Lukather/gw2companion/issues/2) | Helm POC end-to-end (one slot, one build)                      | ✅ done (`0d9ee2d`) | —                    |
-| [3](https://github.com/Lukather/gw2companion/issues/3) | Helper script: name→ID resolution                              | AFK      | —                    |
+| [3](https://github.com/Lukather/gw2companion/issues/3) | Helper script: name→ID resolution                              | ✅ done (`34c1eaf`) | —                    |
 | [4](https://github.com/Lukather/gw2companion/issues/4) | Helper script: chat-code cross-validation                      | AFK      | —                    |
 | [5](https://github.com/Lukather/gw2companion/issues/5) | Three-state match indicator per slot                           | AFK      | #2                   |
 | [6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand                       | AFK      | #3                   |
 | [7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗"                                | AFK      | #5                   |
 | [8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 Power builds                     | **HITL** | #3, #6 (#4 optional) |
 
-#2 is done. #3 + #4 are the two parallel AFK starting points now. #5 unblocks from #2's completed work. Then #6 → #7 → #8.
+#2 and #3 are done. #4 is the remaining independent AFK starting point. #5 unblocks from #2's completed work. Then #6 → #7 → #8.
 
 ### Other ideas (not yet started)
 
@@ -363,3 +418,5 @@ The full brainstorm (build template chat-code import/export, more meta builds pe
 - Don't close or modify [issue #1](https://github.com/Lukather/gw2companion/issues/1) (the parent PRD). It's a reference for the child issues.
 - **Don't refactor the `extractPrefix()` hardcoded list** without also revisiting how `metaSlot.prefix` is computed in `backend/routes/builds.js` (Day 4) — the two are conceptually related, and changes to one may have implications for the other.
 - **Don't forget to kill testing orphans** before running `npm run dev` (Day 4). See "Known quirks" for the recovery command.
+- **Don't "fix" the `?name=` on `/v2/items` expectation** (Day 5) — the API doesn't support it. The local-index approach in `scripts/resolve-meta-items.js` is the workaround. If ArenaNet ever adds real name-search to the API, switching the helper to use it is fine, but the current design is correct as-is.
+- **Don't commit `scripts/.item-name-index.json`** (Day 5) — it's gitignored, ~1.9 MB, and rebuildable. If a future dev commits it by accident, the safest move is `git rm --cached` and a `git commit --amend` (or a new `chore:` commit if the bad one is already pushed).
