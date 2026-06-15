@@ -4,6 +4,45 @@
 
 ---
 
+## Day 8 — Jun 16, 2026: stat-selectable shorthand (issue #6)
+
+### What changed
+
+- **Shipped issue #6** — `scripts/resolve-meta-items.js` now resolves `{ statPrefix, slot }` entries to a representative item ID. Curators can write `{ statPrefix: "Berserker's", slot: "Helm" }` instead of pasting a specific item name; the script picks a representative Ascended item of the right slot/weight and writes back `{ id: … }`. Works for all 6 armor slots, all 4 weapon slots (weapon type derived from `build.equipment.weapons`), and all 6 trinket slots.
+
+### Implementation notes
+
+- **Discovered the GW2 `/v2/items?type=…&rarity=…` filter is silently ignored** — every call returns all 73,923 IDs regardless of params. The issue's "or a more specific query that reliably returns stat-selectable items" hedge was the right move. Pivoted to client-side filtering against an extended local index.
+- **Extended the local item-name index** with a per-item `items` map: `{ id: { name, type, slot, weight } }`. Populated for all equippable types (Armor, Weapon, Trinket, Back). Index now ~3-5 MB; auto-rebuilds the first time the new script version runs.
+- **Two GW2 API gotchas** caught during testing:
+  1. The armor weight field is `details.weight_class`, not `details.weight` — the name in the docs is misleading.
+  2. `Back` (cosmetic back items) has top-level `type: "Back"` and **no `details` object** — so the filter logic has a special case to treat `item.type` as the slot when there's no `details.type`.
+- **Naming convention differs for back items**: armor/weapons use `"Berserker's X"` (with apostrophe) but back items historically use `"Berserkers Spineguard"` (no apostrophe). The script does NOT auto-normalize — strict matching forces the curator to use the actual API name. The failure message is clear enough to discover this.
+- **Weapons-array edge case** is handled: missing or empty `equipment.weapons` array → `WeaponA1`/`WeaponA2`/`WeaponB1`/`WeaponB2` slots fail with `'no `weapons` array in build'`. Other slot types still work.
+- **No new API calls per lookup** — the items map is already populated during the one-time index build. Stat-prefix resolution is purely in-memory.
+
+### Files modified
+
+- `scripts/resolve-meta-items.js` — statPrefix shorthand, weapon parser, slot/weight mappings, extended index with `items` map (+204/-18)
+
+### Live-tested
+
+5/5 real slots resolve correctly. 1/1 intentional bogus prefix fails. Write mode writes resolved IDs back. Full --all run is clean (other 8 builds unaffected).
+
+| Build          | Slot       | statPrefix      | Resolved ID | Picked name                                      |
+|----------------|------------|-----------------|-------------|--------------------------------------------------|
+| warrior-berserker-power | Shoulders | Berserker's     | 2124        | Berserker's Scallywag Pauldrons of the Afflicted |
+| warrior-berserker-power | Backpack  | Berserkers      | 59          | Berserkers Spineguard of Ruby                    |
+| warrior-berserker-power | Ring1     | Berserker's     | 23199       | Berserker's Ring                                 |
+| warrior-berserker-power | WeaponA1  | Berserker's     | 13691       | Berserker's Destroyer Axe                        |
+| warrior-berserker-power | WeaponB1  | Berserker's     | 13698       | Berserker's Destroyer Greatsword                 |
+
+### Mini-quirk introduced
+
+- **Index auto-rebuilds on first run with new script** — the old index lacks the `items` field, and `loadIndex` detects this and triggers a 3-5 min rebuild. Subsequent runs are instant. The detect-and-rebuild logic is in `loadIndex()` with a clear console message.
+
+---
+
 ## Day 7 — Jun 16, 2026: three-state match indicator (issue #5)
 
 ### What changed
@@ -95,6 +134,7 @@
 | resolve-meta-items helper script | ✅ Day 5 |
 | Chat-code cross-validation | ✅ Day 6 |
 | Three-state match indicator (✓/~ / ✗) | ✅ Day 7 |
+| Stat-selectable shorthand `{ statPrefix, slot }` | ✅ Day 8 |
 
 ---
 
@@ -114,7 +154,7 @@ gw2-companion/
 ├── plans/
 │   └── per-slot-equipment-ids-prd.md
 ├── scripts/
-│   ├── resolve-meta-items.js
+│   ├── resolve-meta-items.js   # stat-selectable shorthand (Day 8)
 │   └── spike-decode-build.mjs
 ├── backend/
 │   ├── server.js
@@ -138,25 +178,29 @@ gw2-companion/
 
 - API key in `backend/data/config.json` is gitignored — must be entered manually.
 - `?name=` on `/v2/items` is silently ignored. The helper script uses a local index instead.
+- `?type=` and `?rarity=` on `/v2/items` are **also** silently ignored. Index now carries per-item slot/weight for client-side filtering (Day 8).
 - `wikiFetch` returns 403 on some MediaWiki endpoints (missing User-Agent header).
 - Live-test orphans on :3000 — MSYS `pkill` unreliable on Windows. Kill by PID.
 - `HideSuffix` items: prefix derived from build's `equipment.prefix`, not item def.
 - Trait cross-validation is LOOSE (GW2 template uses row indices, not trait IDs).
+- GW2 armor weight field is `details.weight_class`, not `details.weight` (Day 8 discovery).
+- GW2 `Back` items have `type: "Back"` but **no `details` object** — special case in index builder (Day 8).
+- Back-item stat-selectable names use `"Berserkers X"` (no apostrophe), not `"Berserker's X"`. Curator must use the API's actual name (Day 8).
 - `favicon.svg` and `logo.svg` are intentionally duplicate — keep in sync.
 
 ---
 
 ## What to do next
 
-**#5 and #7 are done.** Remaining slices:
+**#5, #6, and #7 are done.** Remaining slices:
 
 | # | Title | Type | Blocked by |
 | --- | --- | --- | --- |
-| [#6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand | AFK | #3 |
+| [#6](https://github.com/Lukather/gw2companion/issues/6) | Helper script: stat-selectable shorthand | ✅ done | #3 ✅ |
 | [#7](https://github.com/Lukather/gw2companion/issues/7) | Summary count "X ✓ · Y ~ · Z ✗" | ✅ done | #5 ✅ |
 | [#8](https://github.com/Lukather/gw2companion/issues/8) | Curate per-slot IDs for all 9 builds | **HITL** | #3, #6 |
 
-Only #6 (AFK) and #8 (HITL) remain.
+Only #8 (HITL) remains.
 
 ### What NOT to do (cumulative)
 

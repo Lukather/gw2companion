@@ -24,21 +24,38 @@
  *     1. GET /v2/items         → list of all ~74k item IDs
  *     2. GET /v2/items?ids=... → item objects, chunked at 200/call
  *     3. index by name: { "Zojja's Visor": [48075], ... }
+ *     4. (issue #6) also index equippable items by slot/weight:
+ *        { "48075": { name, type, slot: "Helm", weight: "Heavy" }, ... }
+ *      used by the { statPrefix, slot } shorthand.
  *
  *   If the cache file is missing, it is built on first run (~3-5 min, ~370
  *   chunked API calls at the ArenaNet rate limit). Subsequent runs are
  *   instant. Use --refresh to force a rebuild when you know item names have
  *   changed (rare — only on game patches that rename items).
  *
+ *   Note: the official /v2/items endpoint silently ignores `?type=` and
+ *   `?rarity=` query params (returns all 74k IDs no matter what), so the
+ *   shorthand resolver filters client-side against the index, not server-side.
+ *
  *   Multiple items can share a name (e.g. ascended vs. legendary skins).
  *   In that case the first ID wins and the report shows a warning. The
  *   curator can resolve manually if the wrong skin is picked.
  *
  * SLOT SHAPES HANDLED (per meta-builds.json schema in plans/per-slot-equipment-ids-prd.md)
- *   { id: 12345 }                → skipped (already resolved)
- *   { name: "Foo" }              → resolved via the local name index
- *   { statPrefix: "Berserker's", slot: "Helm" }  → skipped (deferred to #6)
- *   null / missing               → skipped
+ *   { id: 12345 }                                   → skipped (already resolved)
+ *   { name: "Foo" }                                 → resolved via the local name index
+ *   { statPrefix: "Berserker's", slot: "Helm" }     → resolved via the local items map (issue #6)
+ *   null / missing                                  → skipped
+ *
+ * STAT-SELECTABLE SHORTHAND (issue #6)
+ *   For a `{ statPrefix, slot }` entry, the script scans the local items map
+ *   for equippable items matching the slot (e.g. `Helm`, `Ring`, `Greatsword`)
+ *   whose name starts with the prefix (case-insensitive) and, for armor, whose
+ *   weight matches the build's profession. The first result by ID wins, and
+ *   the resolved ID is written back as `{ id: … }`. Weapon slots derive their
+ *   GW2 type from the build's `equipment.weapons` array (e.g. "Axe/Axe" →
+ *   WeaponA1=Axe, WeaponA2=Axe). No API call is made for each lookup — the
+ *   items map is populated once when the index is built.
  *
  * CHAT-CODE CROSS-VALIDATION (issue #4)
  *   If a build has a `buildCode` field (an in-game GW2 build template chat
@@ -119,6 +136,16 @@ Item-name index lives at scripts/.item-name-index.json (gitignored).
 It is built on first run (~3-5 min, ~370 chunked API calls) and reused
 afterwards. Use --refresh to force a rebuild.
 
+Stat-selectable shorthand:
+  For slots defined as { statPrefix: "Berserker's", slot: "Helm" }, the
+  script scans the local items map for equippable items matching the slot
+  (Helm, Ring, Greatsword, …) whose name starts with the prefix
+  (case-insensitive) and, for armor, whose weight matches the build's
+  profession. Resolves to { id: … }. Works for armor (6 slots), weapons
+  (4 slots, type derived from build's weapons array), and trinkets
+  (6 slots). The items map is rebuilt automatically the first time you
+  run with the new script version (or with --refresh).
+
 Chat-code cross-validation:
   Builds with a 'buildCode' field are decoded with @gw2/chatlink and
   cross-validated against the human-maintained 'specializations' and
@@ -135,9 +162,121 @@ function classifySlot(slotDef) {
     return { kind: 'name', name: slotDef.name.trim() };
   }
   if (typeof slotDef === 'object' && slotDef.statPrefix && slotDef.slot) {
-    return { kind: 'deferred' }; // { statPrefix, slot } — handled in #6
+    return { kind: 'statPrefix', statPrefix: slotDef.statPrefix, slotName: slotDef.slot };
   }
   return { kind: 'unknown' }; // malformed; treat as skipped with a note
+}
+
+// --- stat-selectable shorthand (issue #6) ------------------------------
+//
+// Map slot name → GW2 item type. Used for { statPrefix, slot } entries
+// where the slot is fixed (armor, trinket).
+const ARMOR_SLOT_TO_TYPE = {
+  Helm: 'Helm', Shoulders: 'Shoulders', Coat: 'Coat',
+  Gloves: 'Gloves', Leggings: 'Leggings', Boots: 'Boots',
+};
+const TRINKET_SLOT_TO_TYPE = {
+  Backpack: 'Back', Accessory1: 'Accessory', Accessory2: 'Accessory',
+  Amulet: 'Amulet', Ring1: 'Ring', Ring2: 'Ring',
+};
+const PROFESSION_ARMOR_WEIGHT = {
+  Guardian: 'Heavy', Warrior: 'Heavy', Revenant: 'Heavy',
+  Engineer: 'Medium', Ranger: 'Medium', Thief: 'Medium',
+  Elementalist: 'Light', Mesmer: 'Light', Necromancer: 'Light',
+};
+
+// Parse a weapon set spec like "Greatsword" or "Sword/Focus" into
+// { main, off }. A single spec is treated as two-handed (main=off=spec).
+// Returns null if the spec is empty/malformed.
+function parseWeaponSpec(spec) {
+  if (typeof spec !== 'string' || !spec.trim()) return null;
+  const s = spec.trim();
+  if (s.includes('/')) {
+    const [main, off] = s.split('/').map(x => x.trim());
+    if (!main || !off) return null;
+    return { main, off };
+  }
+  return { main: s, off: s }; // two-handed occupies both slots
+}
+
+// Resolve the GW2 weapon type for a slot like WeaponA1/WeaponA2/WeaponB1/WeaponB2.
+// Derives from the build's `equipment.weapons` array. Returns { type, reason }
+// where reason is non-null on failure (no weapons array, missing set, etc).
+function getWeaponTypeForSlot(build, slotName) {
+  const weapons = build.equipment && build.equipment.weapons;
+  if (!Array.isArray(weapons) || weapons.length === 0) {
+    return { type: null, reason: 'no `weapons` array in build' };
+  }
+  const m = /^Weapon([AB])([12])$/.exec(slotName);
+  if (!m) return { type: null, reason: `unrecognized weapon slot "${slotName}"` };
+  const setIdx = m[1] === 'A' ? 0 : 1;
+  const hand = m[2] === '1' ? 'main' : 'off';
+  const setSpec = weapons[setIdx];
+  if (!setSpec) return { type: null, reason: `no weapon set ${setIdx + 1} (build has ${weapons.length} set(s))` };
+  const parsed = parseWeaponSpec(setSpec);
+  if (!parsed) return { type: null, reason: `malformed weapon spec "${setSpec}"` };
+  return { type: parsed[hand], reason: null };
+}
+
+// Resolve a { statPrefix, slot } entry to a representative Ascended item.
+// Returns { id, name, ambiguous, candidates } on success, or { failure: '…' }
+// on failure (caller treats both shapes uniformly and counts failures).
+//
+// Implementation note: the GW2 /v2/items endpoint silently ignores
+// `?type=` and `?rarity=` query parameters, so we cannot filter
+// server-side. Instead, the local item-name index (built in
+// buildNameIndex) carries a per-item `items` map with slot + weight,
+// and we filter client-side. The index is gitignored and ~3-5 min to
+// build on first run; subsequent runs are instant.
+async function resolveStatPrefix({ statPrefix, slotName, build, index }) {
+  const prefix = (statPrefix || '').trim();
+  if (!prefix) return { failure: 'empty statPrefix' };
+
+  const isArmor = Object.prototype.hasOwnProperty.call(ARMOR_SLOT_TO_TYPE, slotName);
+  const isTrinket = Object.prototype.hasOwnProperty.call(TRINKET_SLOT_TO_TYPE, slotName);
+  const isWeapon = /^Weapon[AB][12]$/.test(slotName);
+
+  let itemType;
+  if (isWeapon) {
+    const w = getWeaponTypeForSlot(build, slotName);
+    if (!w.type) return { failure: w.reason };
+    itemType = w.type;
+  } else if (isArmor || isTrinket) {
+    itemType = getItemTypeForSlot(slotName);
+  } else {
+    return { failure: `unrecognized slot "${slotName}"` };
+  }
+  if (!itemType) return { failure: `no GW2 item type for slot "${slotName}"` };
+
+  const itemsMap = (index && index.items) || {};
+  const wantWeight = isArmor ? PROFESSION_ARMOR_WEIGHT[build.profession] : null;
+  const prefixLower = prefix.toLowerCase();
+  const matches = [];
+  for (const [idStr, item] of Object.entries(itemsMap)) {
+    if (!item || !item.name) continue;
+    if (item.slot !== itemType) continue; // filter by slot type
+    const n = item.name.toLowerCase();
+    if (!(n.startsWith(prefixLower + ' ') || n === prefixLower)) continue;
+    if (wantWeight && item.weight !== wantWeight) continue;
+    matches.push({ id: Number(idStr), name: item.name });
+  }
+  if (matches.length === 0) {
+    const wDesc = wantWeight ? ` ${wantWeight}` : '';
+    return { failure: `no${wDesc} Ascended items named like "${prefix} …" of type "${itemType}"` };
+  }
+
+  // Deterministic pick: lowest ID first (ArenaNet assigns IDs in chronological
+  // order, so the lowest is the "original" skin of that stat+slot combo).
+  matches.sort((a, b) => a.id - b.id);
+  const pick = matches[0];
+  return {
+    id: pick.id, name: pick.name,
+    ambiguous: matches.length > 1, candidates: matches.length,
+  };
+}
+
+function getItemTypeForSlot(slotName) {
+  return ARMOR_SLOT_TO_TYPE[slotName] || TRINKET_SLOT_TO_TYPE[slotName] || null;
 }
 
 // --- item-name index ----------------------------------------------------
@@ -167,17 +306,45 @@ async function buildNameIndex() {
   console.log(`  Found ${totalIds} item IDs. Fetching objects in chunks of 200...`);
 
   const names = {};
+  // Per-item metadata for { statPrefix, slot } shorthand lookups. Only
+  // populated for equippable items (armor/weapons/trinkets) since other
+  // types have no slot to match against. Kept small (~5k entries, <1 MB).
+  const items = {};
   let fetched = 0;
   const chunks = chunkIds(allIds);
   for (let i = 0; i < chunks.length; i++) {
     try {
-      const items = await gw2Fetch(`/v2/items?ids=${chunks[i].join(',')}`);
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          if (item && typeof item.name === 'string' && typeof item.id === 'number') {
-            const n = item.name;
-            if (!names[n]) names[n] = [];
-            names[n].push(item.id);
+      const arr = await gw2Fetch(`/v2/items?ids=${chunks[i].join(',')}`);
+      if (Array.isArray(arr)) {
+        for (const item of arr) {
+          if (item && typeof item.id === 'number') {
+            if (typeof item.name === 'string' && item.name) {
+              const n = item.name;
+              if (!names[n]) names[n] = [];
+              names[n].push(item.id);
+            }
+            // Only equippable types are interesting for statPrefix lookups.
+            // Each must have details.type (the specific slot — "Helm",
+            // "Axe", "Ring", "Back", etc.) for the lookup to work.
+            // Back items are an exception: their top-level type is "Back" and
+            // they have no details.type field, so we treat item.type as the slot.
+            const isEquippable = item.type === 'Armor' || item.type === 'Weapon' ||
+                                 item.type === 'Back' || item.type === 'Trinket';
+            let slot = null;
+            if (item.details && typeof item.details.type === 'string') {
+              slot = item.details.type;
+            } else if (item.type === 'Back') {
+              slot = 'Back';
+            }
+            if (isEquippable && slot) {
+              items[item.id] = {
+                name: item.name || '',
+                type: item.type,
+                slot,
+                // GW2 uses `weight_class` (not `weight`) for armor weight.
+                weight: item.details && item.details.weight_class ? item.details.weight_class : null,
+              };
+            }
           }
         }
       }
@@ -194,7 +361,9 @@ async function buildNameIndex() {
     builtAt: new Date().toISOString(),
     totalIds,
     uniqueNames: Object.keys(names).length,
+    equippableItems: Object.keys(items).length,
     names,
+    items,
   };
   fs.writeFileSync(INDEX_PATH, JSON.stringify(index));
   return index;
@@ -209,6 +378,12 @@ function loadIndex(forceRefresh) {
   try {
     const idx = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8'));
     if (!idx.names) throw new Error('index file has no `names` field');
+    if (!idx.items) {
+      // Index was built before the statPrefix shorthand (issue #6) was added.
+      // Rebuild so we have the `items` map (slot+weight per item).
+      console.log('  (index lacks the `items` map needed for { statPrefix, slot } shorthand — rebuilding)');
+      return buildNameIndex();
+    }
     if (indexIsStale(idx)) {
       console.log(`  (index is older than ${INDEX_TTL_DAYS} days, built ${idx.builtAt} — pass --refresh to rebuild)`);
     }
@@ -367,7 +542,7 @@ async function crossValidateBuild(build) {
 
 // --- main flow ----------------------------------------------------------
 
-function processBuild(build, index) {
+async function processBuild(build, index) {
   const report = {
     id: build.id, name: build.name,
     resolved: 0, skipped: 0, failed: 0,
@@ -397,9 +572,19 @@ function processBuild(build, index) {
         const ci = r.caseInsensitive ? ' (case-insensitive match)' : '';
         report.lines.push(`  ${slotName}: name="${cls.name}" → id=${r.id}${ci}${ambig}`);
       }
-    } else if (cls.kind === 'deferred') {
-      report.skipped++;
-      report.lines.push(`  ${slotName}: skipped ({ statPrefix, slot } is deferred to #6)`);
+    } else if (cls.kind === 'statPrefix') {
+      const r = await resolveStatPrefix({ statPrefix: cls.statPrefix, slotName: cls.slotName, build, index });
+      if (r && r.id) {
+        report.resolved++;
+        report.mutations.push({ slot: slotName, from: { statPrefix: cls.statPrefix, slot: cls.slotName }, to: { id: r.id } });
+        const ambig = r.ambiguous ? ` (ambiguous: ${r.candidates} matches, picked first)` : '';
+        report.lines.push(`  ${slotName}: statPrefix="${cls.statPrefix}", slot="${cls.slotName}" → id=${r.id} ("${r.name}")${ambig}`);
+      } else {
+        report.failed++;
+        const reason = (r && r.failure) || 'no match';
+        report.failures.push({ slot: slotName, statPrefix: cls.statPrefix, reason });
+        report.lines.push(`  ${slotName}: statPrefix="${cls.statPrefix}", slot="${cls.slotName}" → FAILED (${reason})`);
+      }
     } else if (cls.kind === 'missing') {
       report.skipped++;
       // silent — slot is null/missing, no message needed
@@ -424,7 +609,8 @@ function printReports(reports) {
     if (r.failures.length) {
       console.log(`  FAILURES:`);
       for (const f of r.failures) {
-        console.log(`    ${f.slot}: name="${f.name}" → ${f.reason}`);
+        const label = f.name ? `name="${f.name}"` : `statPrefix="${f.statPrefix}"`;
+        console.log(`    ${f.slot}: ${label} → ${f.reason}`);
       }
     }
     if (r.crossValidation.present) {
@@ -500,7 +686,7 @@ async function main() {
   // Process each build (slot resolution + chat-code cross-validation).
   const reports = [];
   for (const build of builds) {
-    const report = processBuild(build, index);
+    const report = await processBuild(build, index);
     report.crossValidation = await crossValidateBuild(build);
     reports.push(report);
   }
