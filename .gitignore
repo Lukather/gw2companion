@@ -40,3 +40,6 @@ Thumbs.db
 
 # Unused / dead UI assets
 frontend/src/lib/logo-shield.svg
+
+# resolve-meta-items.js caches the GW2 item-name index here (issue #3)
+scripts/.item-name-index.json
