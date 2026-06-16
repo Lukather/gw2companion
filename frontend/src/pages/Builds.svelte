@@ -24,6 +24,62 @@
     Sickle: 'Sickle', Axe: 'Axe', Pick: 'Pick',
   };
 
+  // ponytail: GW2 slot taxonomy → group/subgroup/display-order. Covers all 20 equippable slots.
+  const slotGroup = {
+    Helm:           { category: 'armor',    subgroup: 'land',    order: 1 },
+    Shoulders:      { category: 'armor',    subgroup: 'land',    order: 2 },
+    Coat:           { category: 'armor',    subgroup: 'land',    order: 3 },
+    Gloves:         { category: 'armor',    subgroup: 'land',    order: 4 },
+    Leggings:       { category: 'armor',    subgroup: 'land',    order: 5 },
+    Boots:          { category: 'armor',    subgroup: 'land',    order: 6 },
+    HelmAquatic:    { category: 'armor',    subgroup: 'aquatic', order: 1 },
+    WeaponA1:       { category: 'weapons',  subgroup: 'set1',    order: 1 },
+    WeaponA2:       { category: 'weapons',  subgroup: 'set1',    order: 2 },
+    WeaponB1:       { category: 'weapons',  subgroup: 'set2',    order: 1 },
+    WeaponB2:       { category: 'weapons',  subgroup: 'set2',    order: 2 },
+    WeaponAquaticA: { category: 'weapons',  subgroup: 'aquatic', order: 1 },
+    WeaponAquaticB: { category: 'weapons',  subgroup: 'aquatic', order: 2 },
+    Backpack:       { category: 'trinkets', subgroup: null,      order: 1 },
+    Amulet:         { category: 'trinkets', subgroup: null,      order: 2 },
+    Accessory1:     { category: 'trinkets', subgroup: null,      order: 3 },
+    Accessory2:     { category: 'trinkets', subgroup: null,      order: 4 },
+    Ring1:          { category: 'trinkets', subgroup: null,      order: 5 },
+    Ring2:          { category: 'trinkets', subgroup: null,      order: 6 },
+    Sickle:         { category: 'tools',    subgroup: null,      order: 1 },
+    Axe:            { category: 'tools',    subgroup: null,      order: 2 },
+    Pick:           { category: 'tools',    subgroup: null,      order: 3 },
+  };
+  const categoryOrder = ['armor', 'weapons', 'trinkets', 'tools'];
+  const categoryLabels = { armor: 'Armor', weapons: 'Weapons', trinkets: 'Trinkets', tools: 'Gathering Tools' };
+  const subgroupOrder = { land: 1, aquatic: 2, set1: 1, set2: 2 };
+  const subgroupLabels = {
+    land: 'Land', aquatic: 'Aquatic', set1: 'Set 1 (main)', set2: 'Set 2 (swap)',
+  };
+
+  // Group equipment by category → subgroup, preserving the GW2 slot order within each.
+  let groupedEquipment = $derived.by(() => {
+    const buckets = {};
+    for (const cat of categoryOrder) {
+      buckets[cat] = { bySubgroup: {}, flat: [] };
+    }
+    for (const eq of (build?.equipment || [])) {
+      const g = slotGroup[eq.slot];
+      if (!g) continue;
+      const sub = g.subgroup || '_main';
+      if (!buckets[g.category].bySubgroup[sub]) buckets[g.category].bySubgroup[sub] = [];
+      buckets[g.category].bySubgroup[sub].push(eq);
+      buckets[g.category].flat.push(eq);
+    }
+    // Sort each subgroup bucket by configured order; items with unknown slots go last.
+    for (const cat of categoryOrder) {
+      for (const sub of Object.keys(buckets[cat].bySubgroup)) {
+        buckets[cat].bySubgroup[sub].sort((a, b) =>
+          (slotGroup[a.slot]?.order ?? 99) - (slotGroup[b.slot]?.order ?? 99));
+      }
+    }
+    return buckets;
+  });
+
   const rarityBorder = {
     Legendary: 'border-l-purple-500',
     Ascended: 'border-l-pink-500',
@@ -326,85 +382,122 @@
       {#if !build.equipment?.length}
         <p class="text-sm italic text-muted-foreground">No equipment data.</p>
       {:else}
-        <div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
-          {#each build.equipment as eq, i (eq.slot || 'eq-' + i)}
-            <div class="grid grid-cols-[1fr_1fr] gap-2 rounded-lg border bg-background p-2.5 text-sm">
-              <!-- Left: Character item -->
-              <div class="flex items-center gap-2 min-w-0">
-                {#if eq.icon}<img src={eq.icon} alt="" width="24" height="24" class="shrink-0" />{/if}
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-[11px] uppercase text-muted-foreground">{equipmentSlots[eq.slot] || eq.slot}</span>
-                    <span class="rounded border-l-4 {getRarityBorder(eq.rarity)}"></span>
-                  </div>
-                  <div class="truncate" title={eq.name}>
-                    {#if eq.wikiUrl}
-                      <a class="text-brand hover:underline" href={eq.wikiUrl} target="_blank">{eq.name}</a>
-                    {:else}
-                      {eq.name}
-                    {/if}
-                  </div>
-                  {#if eq.prefix}
-                    <span class="text-[11px] text-muted-foreground">Prefix: {eq.prefix}</span>
-                  {/if}
-                  {#if eq.upgrades?.length > 0}
-                    <span class="text-[11px] text-gold" title={eq.upgrades.map(u => u.name).join(', ')}>
-                      ⚙ {eq.upgrades.map(u => u.name).join(', ')}
-                    </span>
-                  {/if}
+        <div class="space-y-5">
+          {#each categoryOrder as cat (cat)}
+            {@const bucket = groupedEquipment[cat]}
+            {#if bucket.flat.length > 0}
+              <div>
+                <div class="mb-2 flex items-baseline gap-2">
+                  <h5 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{categoryLabels[cat]}</h5>
+                  <span class="h-px flex-1 bg-border"></span>
                 </div>
-              </div>
 
-              <!-- Right: Meta recommendation -->
-              <div class="flex items-center gap-2 min-w-0">
-                <div class="min-w-0 flex-1">
-                  {#if metaPrefix}
-                    {@const suggestion = getMetaSuggestion(eq)}
-                    {@const slotMatch = metaSlots[eq.slot]}
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-[11px] uppercase text-muted-foreground">Meta</span>
-                      {#if slotMatch}
-                        {#if slotMatch.match === 'exact'}
-                          <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Exact match — you have the meta item">✓</span>
-                        {:else if slotMatch.match === 'prefix'}
-                          <span class="text-amber-600 dark:text-amber-400 font-bold" title="Prefix match — same stats ({slotMatch.prefix}), different item">~</span>
-                        {:else if slotMatch.match === 'off'}
-                          <span class="text-red-600 dark:text-red-400 font-bold" title="Off-meta — {eq.prefix || 'no prefix'} vs meta {slotMatch.prefix}">✗</span>
-                        {:else}
-                          <span class="text-muted-foreground" title="No meta data for this slot">—</span>
-                        {/if}
-                      {:else}
-                        {#if eq.prefix === metaPrefix}
-                          <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Prefix matches meta ({metaPrefix})">✓</span>
-                        {:else if eq.prefix}
-                          <span class="text-amber-600 dark:text-amber-400 font-bold" title="Different prefix: {eq.prefix} vs meta {metaPrefix}">✗</span>
-                        {:else}
-                          <span class="text-muted-foreground" title="No prefix detected">—</span>
-                        {/if}
+                {#if cat === 'armor' || cat === 'weapons'}
+                  {@const subgroupKeys = Object.keys(bucket.bySubgroup).sort((a, b) => (subgroupOrder[a] ?? 99) - (subgroupOrder[b] ?? 99))}
+                  <div class="space-y-3">
+                    {#each subgroupKeys as sub (sub)}
+                      {#if bucket.bySubgroup[sub]?.length}
+                        <div>
+                          <div class="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            {subgroupLabels[sub] || sub}
+                          </div>
+                          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {#each bucket.bySubgroup[sub] as eq, i (eq.slot || cat + '-' + sub + '-' + i)}
+                              {@render eqRow(eq)}
+                            {/each}
+                          </div>
+                        </div>
                       {/if}
-                    </div>
-                    {#if metaSlots[eq.slot]}
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <img src={metaSlots[eq.slot].icon} alt="" width="24" height="24" class="shrink-0" />
-                        <a class="truncate text-xs font-medium text-brand hover:underline" href={metaSlots[eq.slot].wikiUrl} target="_blank" title={metaSlots[eq.slot].name}>{metaSlots[eq.slot].name}</a>
-                      </div>
-                    {:else if suggestion}
-                      <div class="truncate text-xs font-medium text-foreground" title={suggestion.name}>{suggestion.name}</div>
-                      {#if suggestion.extra}
-                        <div class="truncate text-[11px] text-muted-foreground">{suggestion.extra}</div>
-                      {/if}
-                    {:else}
-                      <div class="text-xs text-foreground">{metaPrefix}</div>
-                    {/if}
-                  {:else}
-                    <span class="text-xs text-muted-foreground">No meta</span>
-                  {/if}
-                </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {#each bucket.flat as eq, i (eq.slot || cat + '-' + i)}
+                      {@render eqRow(eq)}
+                    {/each}
+                  </div>
+                {/if}
               </div>
-            </div>
+            {/if}
           {/each}
         </div>
 
+        {#snippet eqRow(eq)}
+          <div class="grid grid-cols-[1fr_1fr] gap-2 rounded-lg border bg-background p-2.5 text-sm">
+            <!-- Left: Character item -->
+            <div class="flex items-center gap-2 min-w-0">
+              {#if eq.icon}<img src={eq.icon} alt="" width="24" height="24" class="shrink-0" />{/if}
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] uppercase text-muted-foreground">{equipmentSlots[eq.slot] || eq.slot}</span>
+                  <span class="rounded border-l-4 {getRarityBorder(eq.rarity)}"></span>
+                </div>
+                <div class="truncate" title={eq.name}>
+                  {#if eq.wikiUrl}
+                    <a class="text-brand hover:underline" href={eq.wikiUrl} target="_blank">{eq.name}</a>
+                  {:else}
+                    {eq.name}
+                  {/if}
+                </div>
+                {#if eq.prefix}
+                  <span class="text-[11px] text-muted-foreground">Prefix: {eq.prefix}</span>
+                {/if}
+                {#if eq.upgrades?.length > 0}
+                  <span class="text-[11px] text-gold" title={eq.upgrades.map(u => u.name).join(', ')}>
+                    ⚙ {eq.upgrades.map(u => u.name).join(', ')}
+                  </span>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Right: Meta recommendation -->
+            <div class="flex items-center gap-2 min-w-0">
+              <div class="min-w-0 flex-1">
+                {#if metaPrefix}
+                  {@const suggestion = getMetaSuggestion(eq)}
+                  {@const slotMatch = metaSlots[eq.slot]}
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] uppercase text-muted-foreground">Meta</span>
+                    {#if slotMatch}
+                      {#if slotMatch.match === 'exact'}
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Exact match — you have the meta item">✓</span>
+                      {:else if slotMatch.match === 'prefix'}
+                        <span class="text-amber-600 dark:text-amber-400 font-bold" title="Prefix match — same stats ({slotMatch.prefix}), different item">~</span>
+                      {:else if slotMatch.match === 'off'}
+                        <span class="text-red-600 dark:text-red-400 font-bold" title="Off-meta — {eq.prefix || 'no prefix'} vs meta {slotMatch.prefix}">✗</span>
+                      {:else}
+                        <span class="text-muted-foreground" title="No meta data for this slot">—</span>
+                      {/if}
+                    {:else}
+                      {#if eq.prefix === metaPrefix}
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold" title="Prefix matches meta ({metaPrefix})">✓</span>
+                      {:else if eq.prefix}
+                        <span class="text-amber-600 dark:text-amber-400 font-bold" title="Different prefix: {eq.prefix} vs meta {metaPrefix}">✗</span>
+                      {:else}
+                        <span class="text-muted-foreground" title="No prefix detected">—</span>
+                      {/if}
+                    {/if}
+                  </div>
+                  {#if metaSlots[eq.slot]}
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <img src={metaSlots[eq.slot].icon} alt="" width="24" height="24" class="shrink-0" />
+                      <a class="truncate text-xs font-medium text-brand hover:underline" href={metaSlots[eq.slot].wikiUrl} target="_blank" title={metaSlots[eq.slot].name}>{metaSlots[eq.slot].name}</a>
+                    </div>
+                  {:else if suggestion}
+                    <div class="truncate text-xs font-medium text-foreground" title={suggestion.name}>{suggestion.name}</div>
+                    {#if suggestion.extra}
+                      <div class="truncate text-[11px] text-muted-foreground">{suggestion.extra}</div>
+                    {/if}
+                  {:else}
+                    <div class="text-xs text-foreground">{metaPrefix}</div>
+                  {/if}
+                {:else}
+                  <span class="text-xs text-muted-foreground">No meta</span>
+                {/if}
+              </div>
+            </div>
+          </div>
+        {/snippet}
       {/if}
     </div>
 
